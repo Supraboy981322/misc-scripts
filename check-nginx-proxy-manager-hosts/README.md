@@ -10,7 +10,7 @@ Written in Bash
   ```
 - Example output
   ```txt
-  
+
   ```
 
 # Dependencies

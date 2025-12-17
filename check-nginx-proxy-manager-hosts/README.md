@@ -4,13 +4,20 @@ Written in Bash
 
 # Usage
 
+Not really much to talk about in terms of usage, you just run it and wait while it checks each host (and prints the domains for hosts that contain `openresty` in the response)
 - Run it
   ```sh
   ./foo.sh
   ```
 - Example output
   ```txt
+  kuma.my-lan.dev
+  pdf.my-lan.dev
+  proxy.my-lan.dev
+  term.my-lan.dev
 
+  4 of 42 services are down
+  done
   ```
 
 # Dependencies
@@ -36,10 +43,12 @@ Written in Bash
   Authorization="Bearer hgjdfghdfjkghjdfiogjr"
   apiURL="https://nginx.my-lan.dev/api/nginx/proxy-hosts"
   ```
+
 - Download the script (replace `wget` with your prefered command, and set the output to a different file name if you can think of a good name, because I couldn't)
   ```sh
   wget https://github.com/Supraboy981322/misc-scripts/check-nignx-proxy-manager-hosts/src/foo.sh
   ```
+
 - Make the script executable (replace `foo.sh` if you changed the output file name)
   ```sh
   chmod a+x foo.sh

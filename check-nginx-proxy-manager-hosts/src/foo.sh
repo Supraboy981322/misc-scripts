@@ -48,5 +48,5 @@ if (( $? != 0 )); then
   printf " when trying to delete temp json file\n"
   printf "file path:  ${tmpFi}"
 else
-  printf "success\n"
+  printf "done\n"
 fi

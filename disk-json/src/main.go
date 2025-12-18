@@ -4,6 +4,7 @@ import (
   "fmt"
 	"time"
 	"bytes"
+	"slices"
 	"os/exec"
 	"context"
 	"strconv"
@@ -70,8 +71,21 @@ func listener(w http.ResponseWriter, r *http.Request) {
 
 	//split into slice of lines
 	oL := strings.Split(string(oR), "\n")
-	//last line is just a newline 
+	//last line is just a newline
+	//  and remove table header
 	oL = oL[1:len(oL)-1]
+	oL = slices.DeleteFunc(oL, func(itm string) bool{
+		return itm == ""
+	})
+	for i, l := range oL {
+		lS := strings.Split(l, " ")
+		lS = slices.DeleteFunc(lS, func(itm string) bool {
+			return itm == "" || itm == " "
+		})
+		if len(lS) < 6 {
+			oL[i+1] = strings.Join(lS, " ") + " " + oL[i+1]
+		}
+	}
 	 
 	//map of fields
 	stuff := map[int]string{
@@ -88,6 +102,11 @@ func listener(w http.ResponseWriter, r *http.Request) {
 	//range over each line of output 
 	for i, l := range oL {
 		//create a json object
+		lS := strings.Split(l, " ")
+		lS = slices.DeleteFunc(lS, func(itm string) bool{
+			return itm == "" || itm == " "
+		})
+		if len(lS) == 1 { continue }
 		res += "  {\n"
 		var j int //used to keep track of used items in slice 
 		for _, t := range strings.Split(l, " ") {

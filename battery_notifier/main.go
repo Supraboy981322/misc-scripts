@@ -7,13 +7,18 @@ import (
 	"os"
 	"log"
 	"time"
+	_ "embed"
 	"strings"
 	"os/exec"
 	"strconv"
 	"syscall"
 	"io/ioutil"
 	"os/signal"
+	"path/filepath"
 )
+
+//go:embed icons/warning.png
+var iconEmbed []byte
 
 var ( 
 	pulse = 1 * time.Second
@@ -26,7 +31,7 @@ var (
 	}{
 		Min: 5,
 		Lvl:0,
-		Low: 80,
+		Low: 25,
 	}
 )
 
@@ -55,11 +60,15 @@ func main() {
 				bat.chDown = true
 			} else { bat.chDown = false }
 			if bat.Lvl <= bat.Low && bat.chDown && bat.Lvl % 5 == 0 {
+				dir := dumpIcon()
 				log.Printf("\033[31mLOW{%d}\033[0m", bat.Lvl)
 				notif("critical", "LOW BATTERY",
 					strconv.Itoa(bat.Lvl)+"%",
-					[]string{"-i", "/home/super/Pictures/icons/warning.png",})
-				
+					[]string{"-i", filepath.Join(dir, "warning.png"),})
+				err := os.RemoveAll(dir)
+				if err != nil {
+					log.Printf("\033[31mfailed to remove directory\033[0m:  %v", err)
+				}
 			}
 			log.Printf("bat.Lvl{%d} bat.Low{%d} bat.chDown{%t} bat.pre{%d}", bat.Lvl, bat.Low, bat.chDown, bat.pre)
 			bat.pre = bat.Lvl
@@ -156,6 +165,21 @@ func isPluggedIn() bool {
 		return true
 	}
 
-	log.Print("\033[0muncaught err in detecting AC state\033[0m") 
+	log.Print("\033[31muncaught err in detecting AC state\033[0m") 
 	return false
+}
+
+func dumpIcon() string {
+	dir, err := os.MkdirTemp("/tmp", "battery_warning*")
+	if err != nil {
+		log.Printf("\033[31mfailed to create temp dir:  %v\033[0m", err)
+		return ""
+	}
+	path := filepath.Join(dir, "warning.png")
+	err = os.WriteFile(path, iconEmbed, 0644)
+	if err != nil {
+		log.Printf("\033[31mfailed to write file:  %v\033[0m", err)
+		return dir
+	}
+	return dir
 }

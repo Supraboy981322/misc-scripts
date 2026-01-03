@@ -28,9 +28,9 @@ func hasBat() bool {
 	for _, d := range dirs {
 		if strings.HasPrefix(d.Name(), "BAT") {
 			p := filepath.Join("/sys/class/power_supply/", d.Name())
-			fmt.Println(p)
 			mB, err := os.ReadFile(filepath.Join(p, "charge_full"))
 			if err != nil { fmt.Println(err) ; continue }
+
 			mStr := strings.TrimSpace(string(mB))
 
 			mI, _ := strconv.Atoi(mStr)

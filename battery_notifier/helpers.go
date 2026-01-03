@@ -27,7 +27,7 @@ func hasBat() bool {
 
 	for _, d := range dirs {
 		if strings.HasPrefix(d.Name(), "BAT") {
-			mStr, err := os.ReadFile(filepath.Join(d.Name(), "charge_fill"))
+			mStr, err := os.ReadFile(filepath.Join(d.Name(), "charge_full"))
 			if err != nil { fmt.Println(err) ; continue }
 
 			mI, _ := strconv.Atoi(string(mStr))

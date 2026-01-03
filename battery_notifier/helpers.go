@@ -27,15 +27,20 @@ func hasBat() bool {
 
 	for _, d := range dirs {
 		if strings.HasPrefix(d.Name(), "BAT") {
-			mStr, err := os.ReadFile(filepath.Join(d.Name(), "charge_full"))
+			p := filepath.Join("/sys/class/power_supply/", d.Name())
+			fmt.Println(p)
+			mB, err := os.ReadFile(filepath.Join(p, "charge_full"))
 			if err != nil { fmt.Println(err) ; continue }
+			mStr := strings.TrimSpace(string(mB))
 
-			mI, _ := strconv.Atoi(string(mStr))
-			if mI > largest { batToUse = d.Name() ; largest = mI }
+			mI, _ := strconv.Atoi(mStr)
+			if mI > largest { batToUse = p ; largest = mI }
 		}
 	};if batToUse == "" { return false }
 
-	bat.Path = fmt.Sprintf("/sys/class/power_supply/%s/capacity", batToUse)
+	bat.Path = filepath.Join(batToUse, "capacity")
+	log.Printf("using battery:  %s\n", bat.Path)
+
 	return true
 }
 

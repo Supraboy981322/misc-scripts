@@ -18,7 +18,7 @@ A somewhat simple and definitely not overengineered battery notification daemon.
 
 My laptop runs NixOS with Hyprland, so it doesn't have a battery notification daemon by default. Instead of installing one someone already made, I thought "how hard could it be to write my own?" Then I wrote it.
 
-The daemon tries to automatically check for a battery and AC power (in the `/sys/class/power_supply` VFS), but if your battery and/or AC power isn't located there, for whatever reason, you can configure it (see [Configuration](#configuration).
+The daemon tries to automatically check for a battery and AC power (in the `/sys/class/power_supply` VFS), but if your battery and/or AC power isn't located there, for whatever reason, you can configure it (see [Configuration](#configuration)).
 
 
 ## Configuration

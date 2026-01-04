@@ -7,21 +7,29 @@ import (
 	"os"
 	"log"
 	"fmt"
+	"time"
 	"os/exec"
 	"syscall"
 	"strconv"
 	"strings"
 	"io/ioutil"
 	"path/filepath"
+	"github.com/Supraboy981322/gomn"
 )
 
 
 func hasBat() bool {
+	if bat.Path != "" {
+		if _, err := os.Stat(bat.Path); err == nil {
+			return true
+		}
+	}
+
 	var batToUse string
 	var largest int
 	dirs, err := os.ReadDir("/sys/class/power_supply/")
 	if err != nil {
-		log.Printf("\033[31mfailed to read power supplies:  %v\033[0m", err)
+		log.Printf("\033[31mfailed to read batteries:  %v\033[0m", err)
 		return false
 	}
 
@@ -38,9 +46,32 @@ func hasBat() bool {
 		}
 	};if batToUse == "" { return false }
 
-	bat.Path = filepath.Join(batToUse, "capacity")
+	if bat.Path != "" { bat.Path = filepath.Join(batToUse, "capacity") }
 	log.Printf("using battery:  %s\n", bat.Path)
 
+	return true
+}
+
+func chkAC() bool {
+	var acToUse string
+	dirs, err := os.ReadDir("/sys/class/power_supply/")
+	if err != nil {
+		log.Printf("\033[31mfailed to read power supplies:  %v\033[0m", err)
+		return false
+	}
+
+	for _, d := range dirs {
+		if strings.HasPrefix(d.Name(), "AC") {
+			p := filepath.Join("/sys/class/power_supply/", d.Name())
+			tB, err := os.ReadFile(filepath.Join(p, "type"))
+			if err != nil { fmt.Println(err) ; continue }
+
+			tStr := strings.TrimSpace(string(tB))
+			if tStr == "Mains" { ac.Path = filepath.Join(p, "online") ; break }
+		}
+	};if acToUse == "" { return false }
+
+	log.Printf("using power supply:  %s\n", ac.Path)
 	return true
 }
 
@@ -60,20 +91,14 @@ func dumpIcon() string {
 }
 
 func isPluggedIn() bool {
-	acPath := "/sys/class/power_supply/AC0/online"
-
-	acBytes, err := ioutil.ReadFile(acPath)
+	acBytes, err := ioutil.ReadFile(ac.Path)
 	if err != nil {
 		log.Printf("\033[31merr reading AC state:  %v\033[0m", err)
 		return false
 	}
 
 	acStr := strings.TrimSpace(string(acBytes))
-	if acStr == "0" {
-		return false
-	} else {
-		return true
-	}
+	if acStr == "0" { return false } else { return true }
 
 	log.Print("\033[31muncaught err in detecting AC state\033[0m") 
 	return false
@@ -114,8 +139,6 @@ func sendRTSIG(process string, signal int) error {
 		return err
 	}
 
-//	log.Printf("sig: %d  ;  pid: %d  ;  process: %s  ;  signal: %d",
-//		sig, pid, process, signal)
 	return nil
 }
 
@@ -135,3 +158,41 @@ func notif(urgency string, title string, msg string, extraArgs []string) {
 
 	log.Print("sent notification")
 }
+
+func readConf() {
+	var conf gomn.Map
+	{
+		h, err := os.UserHomeDir()
+		if err != nil {	log.Print(err) }
+
+		p := filepath.Join(h, ".config/Supraboy981322/battery_notifier/config.gomn")
+
+		conf, err = gomn.ParseFile(p)
+		if err != nil {	log.Print(err) }
+	}
+
+	if pu, ok := conf["pulse"].(int); ok && pu > 0 {
+		pulse = time.Duration(pu) * time.Second
+	}
+
+	if batConf, ok := conf["battery"].(gomn.Map); ok {
+		bat.Path, _ = batConf["path"].(string) //if bad, it's auto set later
+
+		bat.Low, _ = batConf["low"].(int)
+		if bat.Low >= 0 { bat.Low = 25 }
+	} else {
+		log.Print("can't assert \"battery\" in config to a map")
+		return
+	}
+
+	if acConf, ok := conf["ac"].(gomn.Map); ok {
+		ac.chk, _ = acConf["check"].(bool)
+		ac.Path, _ = acConf["path"].(string)
+	} else {
+		log.Print("can't assert \"ac\" in config to a map")
+		return
+	}
+
+	return
+}
+

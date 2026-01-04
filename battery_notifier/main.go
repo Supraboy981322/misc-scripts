@@ -4,7 +4,7 @@ import (
 	"os"
 	"log"
 	"time"
-	_ "embed"
+	_ "embed" //embeds warning icon
 	"strconv"
 	"syscall"
 	"os/signal"
@@ -22,7 +22,7 @@ var (
 		chk bool
 		trakr bool
 		Path string
-	}{ chk: true, }
+	}{ chk: true, } //could be overwritten by config
 
 	//holds battery settings
 	//  (changed by init() func)
@@ -35,7 +35,7 @@ var (
 		Path string
 	}{
 		Min: 5, //may do something with this at some point
-		Low: 25,
+		Low: 25, //could be overwritten by config
 	}
 )
 

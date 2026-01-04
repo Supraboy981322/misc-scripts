@@ -31,3 +31,10 @@ Below is my configuration as an example
   ["path"] := "/sys/class/power_supply/AC0/online"
 |
 ```
+
+### Installation
+
+Go install
+```sh
+go install github.com/Supraboy981322/misc-scripts/battery_notifier@latest
+```

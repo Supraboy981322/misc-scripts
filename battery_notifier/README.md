@@ -24,6 +24,9 @@ My laptop runs NixOS with Hyprland, so it doesn't have a battery notification da
 The daemon tries to automatically check for a battery and AC power (in the `/sys/class/power_supply` VFS), but if your battery and/or AC power isn't located there, for whatever reason, you can configure it (see [Configuration](#configuration)).
 
 
+---
+
+
 ## Configuration
 
 You can set a specific path for the battery and/or AC power, or disable the AC power check. The `"pulse"` can be changed to adjust how frequent the checks are run. The battery "low" state is also configurable, which's when it'll start to send a notification for every decrement (if it's divisible by 5), but it defaults to `25`% if unset. 
@@ -48,6 +51,9 @@ Below is my configuration as an example
   ["path"] := "/sys/class/power_supply/AC0/online"
 |
 ```
+
+
+---
 
 
 ## Installation

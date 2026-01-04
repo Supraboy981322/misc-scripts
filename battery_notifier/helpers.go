@@ -23,7 +23,7 @@ func hasBat() bool {
 	if bat.Path != "" {
 		//if make sure it exists 
 		if _, err := os.Stat(bat.Path); err == nil {
-			return true
+			return true //asume invalid if any error
 		} else { log.Print("battery path in config is invalid") }
 	}
 
@@ -74,7 +74,7 @@ func chkAC() bool {
 	if ac.Path != "" {
 		//if make sure it exists 
 		if _, err := os.Stat(ac.Path); err == nil {
-			return true
+			return true //asume invalid if any err
 		} else { log.Print("ac path in config is invalid") }
 	};var acToUse string //holds path of AC
 

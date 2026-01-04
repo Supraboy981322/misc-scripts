@@ -103,6 +103,7 @@ func main() {
 				}
 			}
 			
+			//log checked battery values
 			log.Printf("bat.Lvl{%d} bat.Low{%d} bat.chDown{%t} bat.pre{%d}",
 						bat.Lvl, bat.Low, bat.chDown, bat.pre)
 

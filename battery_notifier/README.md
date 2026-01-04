@@ -7,9 +7,23 @@ A somewhat simple and definitely not overengineered battery notification daemon.
 >[!NOTE]
 >This relies on notify-send to send notifications (usually pre-installed on most distros) 
 
+## Table of contents
+*   [Why](#why-i-wrote-my-own-daemon-instead-of-using-an-existing-one)
+*   [Configuring](#configuration)
+*   [Install](#installation)
+
+
+
+## Why I wrote my own daemon instead of using an existing one
+
 My laptop runs NixOS with Hyprland, so it doesn't have a battery notification daemon by default. Instead of installing one someone already made, I thought "how hard could it be to write my own?" Then I wrote it.
 
-The daemon tries to automatically check for a battery and AC power (in the `/sys/class/power_supply` VFS), but if your battery and/or AC power isn't located there, for whatever reason, you can configure it. You can set a specific path for the battery and/or AC power, or disable the AC power check. The `"pulse"` can be changed to adjust how frequent the checks are run. The battery "low" state is also configurable, which's when it'll start to send a notification for every decrement (if it's divisible by 5), but it defaults to `25`% if unset. 
+The daemon tries to automatically check for a battery and AC power (in the `/sys/class/power_supply` VFS), but if your battery and/or AC power isn't located there, for whatever reason, you can configure it (see [Configuration](#configuration).
+
+
+## Configuration
+
+You can set a specific path for the battery and/or AC power, or disable the AC power check. The `"pulse"` can be changed to adjust how frequent the checks are run. The battery "low" state is also configurable, which's when it'll start to send a notification for every decrement (if it's divisible by 5), but it defaults to `25`% if unset. 
 
 Below is my configuration as an example
 ```gomn
@@ -32,7 +46,7 @@ Below is my configuration as an example
 |
 ```
 
-### Installation
+## Installation
 
 Go install
 ```sh

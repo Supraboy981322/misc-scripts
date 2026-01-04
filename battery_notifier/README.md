@@ -4,7 +4,7 @@ A somewhat simple and definitely not overengineered battery notification daemon.
 
 <sub>Also checks for AC power state.</sub>
 
->![NOTE]
+>[!NOTE]
 >This relies on notify-send to send notifications (this is usually pre-installed on most distros) 
 
 My laptop runs NixOS with Hyprland, so it doesn't have a battery notification daemon by default. Instead of installing one someone already made, I thought "how hard could it be to write my own?" Then I did one.

@@ -19,6 +19,9 @@ import (
 
 
 func hasBat() bool {
+	var batToUse string
+	var largest int
+
 	//makes sure config didn't already set it
 	if bat.Path != "" {
 		//if make sure it exists 
@@ -27,11 +30,9 @@ func hasBat() bool {
 		} else { log.Print("battery path in config is invalid") }
 	}
 
-	//
-	var batToUse string
-	var largest int
+	//get list of items in power supply VFS
 	dirs, err := os.ReadDir("/sys/class/power_supply/")
-	if err != nil {
+	if err != nil { //assume no battery on any err
 		log.Printf("\033[31mfailed to read batteries:  %v\033[0m", err)
 		return false
 	}
@@ -80,7 +81,7 @@ func chkAC() bool {
 
 	//get a list of contents in the power_supply VFS 
 	dirs, err := os.ReadDir("/sys/class/power_supply/")
-	if err != nil {
+	if err != nil { //assume no AC power on any err
 		log.Printf("\033[31mfailed to read power supplies:  %v\033[0m", err)
 		return false
 	}

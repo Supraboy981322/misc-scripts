@@ -15,7 +15,8 @@ import (
 var iconEmbed []byte
 
 var (
-	//how long the pause between checks lasts 
+	//how long the pause between checks lasts
+	//  may be overwritten by config
 	pulse = 1 * time.Second
 
 	ac = struct {

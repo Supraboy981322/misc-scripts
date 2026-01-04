@@ -7,11 +7,14 @@ A somewhat simple and definitely not overengineered battery notification daemon.
 >[!NOTE]
 >This relies on notify-send to send notifications (usually pre-installed on most distros) 
 
+
 ## Table of contents
 *   [Why](#why-i-wrote-my-own-daemon-instead-of-using-an-existing-one)
 *   [Configuring](#configuration)
 *   [Install](#installation)
 
+
+---
 
 
 ## Why I wrote my own daemon instead of using an existing one
@@ -45,6 +48,7 @@ Below is my configuration as an example
   ["path"] := "/sys/class/power_supply/AC0/online"
 |
 ```
+
 
 ## Installation
 

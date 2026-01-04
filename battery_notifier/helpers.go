@@ -162,13 +162,15 @@ func notif(urgency string, title string, msg string, extraArgs []string) {
 func readConf() {
 	var conf gomn.Map
 	{
+		//get user home dir
 		h, err := os.UserHomeDir()
-		if err != nil {	log.Print(err) }
+		if err != nil {	log.Print(err) ; return }
 
+		//construct absolute path to config
 		p := filepath.Join(h, ".config/Supraboy981322/battery_notifier/config.gomn")
 
 		conf, err = gomn.ParseFile(p)
-		if err != nil {	log.Print(err) }
+		if err != nil {	log.Print(err) ; return }
 	}
 
 	if pu, ok := conf["pulse"].(int); ok && pu > 0 {
@@ -176,23 +178,21 @@ func readConf() {
 	}
 
 	if batConf, ok := conf["battery"].(gomn.Map); ok {
-		bat.Path, _ = batConf["path"].(string) //if bad, it's auto set later
-
+		bat.Path, _ = batConf["path"].(string) //if bad, it's auto-set later
 		bat.Low, _ = batConf["low"].(int)
 		if bat.Low >= 0 { bat.Low = 25 }
 	} else {
-		log.Print("can't assert \"battery\" in config to a map")
+		log.Print(`can't assert "battery" in config to a map`)
 		return
 	}
 
 	if acConf, ok := conf["ac"].(gomn.Map); ok {
-		ac.chk, _ = acConf["check"].(bool)
-		ac.Path, _ = acConf["path"].(string)
+		ac.chk, ok = acConf["check"].(bool)
+		if !ok { ac.chk = true } //default to true
+		
+		ac.Path, _ = acConf["path"].(string)  //if bad, it's auto-set later
 	} else {
-		log.Print("can't assert \"ac\" in config to a map")
+		log.Print(`can't assert "ac" in config to a map`)
 		return
 	}
-
-	return
 }
-

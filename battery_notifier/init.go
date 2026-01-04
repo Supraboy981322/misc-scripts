@@ -7,7 +7,7 @@ func init() {
 
 	//exit if no battery detected
 	if !hasBat() {
-		log.Print("no battery detected")
+		log.Print("no battery detected; exiting...")
 		os.Exit(0)
 	}
 

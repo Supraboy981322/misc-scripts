@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"bytes"
 	"os/exec"
-	"encoding/binary"
 	"math/rand/v2"
+	"encoding/binary"
 )
 
 func main() {
@@ -18,20 +18,22 @@ func main() {
 	//ffplay
 	playback := exec.Command(
 		"ffplay",
-			"-nodisp",
-			"-autoexit",
-			"-f", "wav",
-			"-i", "-")
+			"-nodisp", //no window
+			"-autoexit", //exit on close
+			"-f", "wav", //wav container
+			"-i", "-") //read from stdin
 	//ffmpeg
 	audio := exec.Command(
 		"ffmpeg",
-      "-f", "f32le",
-      "-ar", "44100",
-      "-ac", "1",
-			"-i", "-",
-      "-af", `rubberband=pitch=0.075,volume=0.05`,
-			"-f", "wav", 
-			"pipe:")
+      "-f", "f32le", //float 32 little-endian
+      "-ar", "44100", //44KHz
+      "-ac", "1", //mono audio
+			"-i", "-", //read from stdin
+      "-af", `rubberband=pitch=0.075,volume=0.05`, //audio tweaks
+			"-f", "wav", //put in wave container
+			"-") //write to stdout
+
+	fmt.Printf("len{%d seconds}\n", len(buf_b.Bytes())/(44100*2))
 
 	//connect audio and playback pipes to each other and terminal
 	r, w := io.Pipe()//reader and writer 

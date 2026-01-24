@@ -18,6 +18,8 @@ func main() {
 	//ffplay
 	playback := exec.Command(
 		"ffplay",
+			"-nodisp",
+			"-autoexit",
 			"-f", "wav",
 			"-i", "-")
 	//ffmpeg

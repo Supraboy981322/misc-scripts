@@ -58,8 +58,10 @@ func main() {
 }
 
 func gen_noise(num uint, lvl float32) []float32 {
+	//create a buffer
 	buf := []float32{};
 	var i uint;
+	//fill buffer
 	for i = 0; i < num; i++ {
 		ran_f := rand.Float32()
     buf = append(buf, (2.0 * ran_f - 1.0) * lvl)
@@ -67,6 +69,7 @@ func gen_noise(num uint, lvl float32) []float32 {
 	return buf
 }
 
+//helper to make a byte buffer from float buffer 
 func f_to_b_buf(buf_f []float32) *bytes.Buffer {
 	buf := new(bytes.Buffer)
 	for _, f := range buf_f { binary.Write(buf, binary.LittleEndian, f) }

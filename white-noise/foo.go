@@ -3,8 +3,8 @@ package main
 import (
 	"io"
 	"os"
+	"fmt"
 	"bytes"
-//	"bufio"
 	"os/exec"
 	"encoding/binary"
 	"math/rand/v2"
@@ -13,7 +13,11 @@ import (
 func main() {
 	buf_f := gen_noise(10000000, 1.0)
 	buf_b := f_to_b_buf(buf_f)
-	playback := exec.Command("ffplay", "-f", "wav", "-i", "-")
+
+	playback := exec.Command(
+		"ffplay",
+			"-f", "wav",
+			"-i", "-")
 	audio := exec.Command(
 		"ffmpeg",
       "-f", "f32le",
@@ -22,21 +26,27 @@ func main() {
 			"-i", "-",
       "-af", `rubberband=pitch=0.075,volume=0.05`,
 			"-f", "wav", 
-			"pipe:");
-	audio.Stdin = buf_b
+			"pipe:")
+
 	r, w := io.Pipe()
-	audio.Stdout = w
-	playback.Stdin = r
-	audio.Stderr = os.Stderr
-	playback.Stderr = os.Stderr
-	err := audio.Start()
-	if err != nil { print(err.Error) ; os.Exit(1) }
-	err = playback.Run()
-	if err != nil { print(err.Error) ; os.Exit(1) }
-	err = playback.Wait()
-	if err != nil { print(err.Error) ; os.Exit(1) }
-	err = audio.Wait()
-	if err != nil { print(err.Error) ; os.Exit(1) }
+	audio.Stdin, audio.Stdout, audio.Stderr = buf_b, w, os.Stderr
+	playback.Stdin, playback.Stderr = r, os.Stderr
+	
+	if err1, err2 := audio.Start(), playback.Start(); err1 != nil || err2 != nil {
+		fmt.Fprintf(
+			os.Stderr,
+			"failed to start:\n\taudio: %v\n\tplayback: %v\n",
+			err1, err2)
+		os.Exit(1)
+	}
+
+	if err1, err2 := audio.Wait(), playback.Wait(); err1 != nil || err2 != nil {
+		fmt.Fprintf(
+			os.Stderr,
+			"Failed to run:\n\taudio: %v\n\tplayback: %v\n",
+			err1, err2)
+		os.Exit(1)
+	}
 }
 
 func gen_noise(num uint, lvl float32) []float32 {

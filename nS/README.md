@@ -27,3 +27,5 @@ By default, it just counts semi-colons (`;`) and end braces (`}`), ignoring anyt
   - don't count end braces:  `-B`, `--no-brace`, or `--ignore-brace`
   - don't count semi-colons: `-C`, `--no-semi`, `--ignore-semi-colons`
   - print help screen:  `-h`, `--help`
+  - parse quoted strings:  `-q`, or `--parse-quotes`
+  - count set of additional chars:  `-c`, `--custom`

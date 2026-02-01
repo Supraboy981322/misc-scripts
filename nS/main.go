@@ -112,6 +112,10 @@ func print_help() {
 		"\tdon't count end braces",
 		"'-C', '--no-semi', '--ignore-semi-colons':",
 		"\tdon't count semi-colons", 
+		"'-q', or '--parse-quotes'",
+		"\tparse quoted strings",
+		"'-c', '--custom'",
+		"\tcount set of additional chars",
 		"'-h', '--help':",
 		"\tprints this",
 	}

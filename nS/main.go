@@ -40,16 +40,20 @@ func main() {
 		typ byte
 	}{}
 
-	for _, b := range in {
+	if count.lines { count.N += len(split_lines(in)) }
+
+	for i, b := range in {
 		switch b {
-		 case '\n': if !esc.on && count.lines { count.N++ }
 		 case ';': if !esc.on && count.semi { count.N++ }
 		 case '}': if !esc.on && count.endB { count.N++ } 
 		 case '"', '\'', '`':
 			if esc_quot {
+				if i > 0 {
+					if in[i-1] == '\\' { break }
+				};
 				if esc.typ == b {
 					esc.on = false ; esc.typ = 0
-				} else if !esc.on {
+				} else if !esc.on && esc.typ == 0{
 					esc.on = true ; esc.typ = b
 				}
 				continue
@@ -59,6 +63,17 @@ func main() {
 		}
 	}
 	fmt.Printf("%d\n", count.N)
+}
+
+func split_lines(b_s []byte) [][]byte {
+	var res [][]byte
+	var mem []byte
+	for _, b := range b_s {
+		if b == '\n' {
+			res = append(res, mem) ; mem = nil
+		} else { mem = append(mem, b) }
+	}
+	return res
 }
 
 //I refuse to import slices and string

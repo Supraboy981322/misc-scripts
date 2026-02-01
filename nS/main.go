@@ -29,6 +29,10 @@ func main() {
 		scanr := bufio.NewScanner(os.Stdin)
 		for scanr.Scan() { in = append(in, scanr.Bytes()...) }
 		if e := scanr.Err(); e != nil { err_out("err reading stdin: %v", e) }
+	} else if in == nil {
+		var e error
+		in, e = os.ReadFile(file)
+		if e != nil { err_out("failed to read file: %v", e) }
 	}
 
 	esc := struct {

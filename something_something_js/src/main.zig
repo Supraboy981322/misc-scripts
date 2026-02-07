@@ -1,6 +1,7 @@
 const std = @import("std");
 const js_fn = @import("js_funcs.zig");
 const js = @import("js.zig");
+const repl = @import("repl.zig");
 
 var stdout_buf:[1024]u8 = undefined;
 var stdout_wr = std.fs.File.stdout().writer(&stdout_buf);

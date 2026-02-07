@@ -6,3 +6,8 @@ Output looks something like this:
 ```
 
 If you want something cleaner, learn what `jq` is.
+
+### Dependencies
+- Bun
+
+<sub>it's just some JSON, and I only use Bun to run the `github-linguist --json` command</sub> 

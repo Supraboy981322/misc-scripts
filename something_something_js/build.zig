@@ -11,9 +11,12 @@ pub fn build(b: *std.Build) void {
     });
 
     b.installArtifact(bin);
-
+    bin.addIncludePath(b.path("include"));
+    bin.addLibraryPath(b.path("include"));
+    bin.addObjectFile(b.path("include/libmujs.a"));
+    //include/mujs-1.3.8/build/release/libmujs.a
     for ([_][]const u8 {
-        "mujs",
+        //"mujs", "readline"
     }) |header| bin.root_module.linkSystemLibrary(header, .{});
 
     const run_bin = b.addRunArtifact(bin);

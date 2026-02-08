@@ -1,5 +1,6 @@
 const std = @import("std");
 pub const fns = @import("js_funcs.zig");
+const globs = @import("globals.zig");
 pub const mu = @cImport({
     @cInclude("mujs.h");
 });
@@ -10,7 +11,7 @@ pub const func = struct {
 };
 
 pub const run = struct {
-    pub fn c_str(s:*State, code:[*c]u8) u8 {
+    pub fn c_str(s:State, code:[*c]u8) u8 {
         const ret = mu.js_dostring(s.mujs, code);
         return @intCast(ret);
     }
@@ -29,19 +30,11 @@ pub const State = struct {
         io:?IO,
         comptime N:usize,
         comptime funcs:?*const [N]func,
-    ) !*State {
+    ) !State {
         const Io:IO = if (io) |i| i else blk: {
             break :blk .{
-                .stdout = b: {
-                    var buf:[1024]u8 = undefined;
-                    var wr = std.fs.File.stdout().writer(&buf);
-                    break :b &wr.interface;
-                },
-                .stderr = b: {
-                    var buf:[1024]u8 = undefined;
-                    var wr = std.fs.File.stderr().writer(&buf);
-                    break :b &wr.interface;
-                },
+                .stdout = globs.stdout,
+                .stderr = globs.stderr,
                 .stdin = b: {
                     var buf:[1024]u8 = undefined;
                     var re = std.fs.File.stdin().reader(&buf);
@@ -61,11 +54,9 @@ pub const State = struct {
             mu.js_setglobal(s, fn_C_name);
         }
 
-        var state:State = .{
+        return .{
             .mujs = s,
             .io = Io,
         };
-
-        return &state;
     }
 };

@@ -2,14 +2,12 @@ const std = @import("std");
 const js_fn = @import("js_funcs.zig");
 const js = @import("js.zig");
 const repl = @import("repl.zig");
+const globs = @import("globals.zig");
 
-var stdout_buf:[1024]u8 = undefined;
-var stdout_wr = std.fs.File.stdout().writer(&stdout_buf);
-const stdout = &stdout_wr.interface;
+const mu = js.mu;
 
-var stderr_buf:[1024]u8 = undefined;
-var stderr_wr = std.fs.File.stdout().writer(&stderr_buf);
-const stderr = &stderr_wr.interface;
+const stdout = globs.stdout;
+const stderr = globs.stderr;
 
 pub fn main() !void {
     defer stdout.flush() catch {};
@@ -19,6 +17,17 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const alloc = gpa.allocator();
     defer _ = gpa.deinit();
+
+    const fns = [_]js.func{
+        .{ .name = "print", .func = js_fn.print },
+    };
+    const s:js.State = try js.State.new(null, fns.len, &fns);
+    mu.js_newobject(s.mujs);
+    mu.js_newcfunction(s.mujs, js_fn.p.out, "out", 0);
+    mu.js_setproperty(s.mujs, -2, "out");
+    //mu.js_newcfunction(s.mujs, js_fn.p.err, "err", 0);
+    //mu.js_setproperty(s.mujs, -2, "err");
+    mu.js_setglobal(s.mujs, "p");
 
     const args = try std.process.argsAlloc(alloc);
     defer std.process.argsFree(alloc, args);
@@ -43,10 +52,6 @@ pub fn main() !void {
 
         const code = try alloc.dupeZ(u8, raw);
         defer alloc.free(code);
-        const fns = [_]js.func{
-            .{ .name = "print", .func = js_fn.print },
-        };
-        const s:*js.State = try js.State.new(null, fns.len, &fns);
 //        defer js.mu.js_freestate(s.mujs);
         const ret = js.run.c_str(s, code);
         if (ret != 0) {
@@ -54,5 +59,5 @@ pub fn main() !void {
             try stdout.flush();
             std.process.exit(ret);
         }
-    } else repl.start(); 
+    } else repl.start(s); 
 }

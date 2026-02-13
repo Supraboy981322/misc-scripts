@@ -1,3 +1,4 @@
+///usr/bin/env bun run "$0" "${@}";exit $?
 "use strict";
 
 //restructures GitHub Linguist (gross, Ruby) JSON output to something that isn't stupid
@@ -7,7 +8,7 @@ export{};
 import { $ } from "bun";
 
 const esc = JSON.stringify;
-const stuff:JSON = await $`github-linguist --json`.json();
+const stuff:JSON = await $`github-linguist --json ${Bun.argv.slice(2).join(" ")}`.json();
 const langs:JSON = (():JSON => {
   var res:String = "[";
   for (const thing in stuff) {

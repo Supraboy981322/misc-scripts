@@ -9,6 +9,9 @@ I may or may not have a mild obsession with fork bombs
 Golang `int.go` [source code](./int.go)
 ![int.go ram utilization graph](./metrics/int.go.png)
 
+Golang `foo.go` [source code](./foo.go)
+![int.go ram utilization graph](./metrics/foo.go.png)
+
 TypeScript `ts.ts` [source code](./ts.ts)
 ![ts.ts ram utilization graph](./metrics.ts.ts.png)
 

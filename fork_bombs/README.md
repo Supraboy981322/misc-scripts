@@ -12,7 +12,7 @@ I may or may not have a mild obsession with fork bombs
 <center>Golang <code>foo.go</code> <a ref="foo.go">source code</a></center>
 <img alt="int.go ram utilization graph" src="metrics/foo.go.png" />
 
-<center>TypeScript `ts.ts` <a href="ts.ts">source code</a></center>
+<center>TypeScript <code>ts.ts</code> <a href="ts.ts">source code</a></center>
 <img alt="ts.ts ram utilization graph" src="metrics/ts.ts.png" />
 
 

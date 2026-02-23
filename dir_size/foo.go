@@ -15,11 +15,61 @@ var stuff = struct {
 	dir: ".",
 }
 
+var c atomic.Int64
+var wg sync.WaitGroup
+var print_help bool
+var spawned_early bool
+
+func init() {
+	args := os.Args[1:]
+	loop: for _, a := range args {
+		was_print_help := print_help
+		was_human_readable := stuff.human_readable
+		do_spawn := true
+		if len(a) > 1 {
+			if a[1] == '-' {
+				old_arg := a
+				if len(a) > 2 { a = a[2:] } else {
+					a = old_arg ; goto spawn
+				}
+				switch (a) {
+				 case "help": print_help = true
+				 case "human-readable", "human": stuff.human_readable = true
+				 default: goto spawn
+				}
+			} else {
+				if a[0] == '-' {
+					for _, ch := range a[1:] {
+						switch ch {
+						 case 'h': print_help = true
+						 case 'H': stuff.human_readable = true
+						 default:  goto spawn
+						}
+					}
+				} else { goto spawn }
+			}
+			do_spawn = false
+		}
+		spawn: if !do_spawn { continue loop }
+			print_help = was_print_help
+			stuff.human_readable = was_human_readable
+			spawned_early = true
+			wg.Add(1)
+			go fork(&c, &wg, a)
+			continue loop
+	}
+}
+
+func help() {
+	lines := []string{}
+	for _, l := range lines { fmt.Println(l) }
+}
+
 func main() {
-	var c atomic.Int64
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go fork(&c, &wg, stuff.dir)
+	if !spawned_early {
+		wg.Add(1)
+		go fork(&c, &wg, stuff.dir)
+	}
   wg.Wait()
 	raw_size := c.Load()
 	var final_size string
@@ -30,7 +80,7 @@ func main() {
 		for si > 1000.0 { si /= 1000.0 ; i++ }
 		final_size = fmt.Sprintf("%.2f%s", si, exts[i])
 	} else { final_size = fmt.Sprintf("%d", raw_size) }
-	print(final_size)
+	fmt.Printf("%s\n", final_size)
 }
 
 func fork(c *atomic.Int64, wg *sync.WaitGroup, path string) {
@@ -50,6 +100,6 @@ func fork(c *atomic.Int64, wg *sync.WaitGroup, path string) {
 }
 
 func err_out(e error) {
-	print(e.Error()+"\n")
+	fmt.Fprintf(os.Stderr, "%v\n", e)
 	os.Exit(1)
 }

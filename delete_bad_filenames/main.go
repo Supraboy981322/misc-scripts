@@ -1,3 +1,4 @@
+///usr/bin/env go run "$0" "$@" ; exit $?
 package main
 
 //all I need to do this

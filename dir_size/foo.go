@@ -4,6 +4,7 @@ import (
   "os"
 	"fmt"
   "sync"
+	"errors"
 	"sync/atomic"
 )
 
@@ -101,5 +102,6 @@ func fork(c *atomic.Int64, wg *sync.WaitGroup, path string) {
 
 func err_out(e error) {
 	fmt.Fprintf(os.Stderr, "%v\n", e)
+	if errors.Is(e, os.ErrNotExist) { return }
 	os.Exit(1)
 }

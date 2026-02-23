@@ -21,48 +21,15 @@ var wg sync.WaitGroup
 var print_help bool
 var spawned_early bool
 
-func init() {
-	args := os.Args[1:]
-	loop: for _, a := range args {
-		was_print_help := print_help
-		was_human_readable := stuff.human_readable
-		do_spawn := true
-		if len(a) > 1 {
-			if a[1] == '-' {
-				old_arg := a
-				if len(a) > 2 { a = a[2:] } else {
-					a = old_arg ; goto spawn
-				}
-				switch (a) {
-				 case "help": print_help = true
-				 case "human-readable", "human": stuff.human_readable = true
-				 default: goto spawn
-				}
-			} else {
-				if a[0] == '-' {
-					for _, ch := range a[1:] {
-						switch ch {
-						 case 'h': print_help = true
-						 case 'H': stuff.human_readable = true
-						 default:  goto spawn
-						}
-					}
-				} else { goto spawn }
-			}
-			do_spawn = false
-		}
-		spawn: if !do_spawn { continue loop }
-			print_help = was_print_help
-			stuff.human_readable = was_human_readable
-			spawned_early = true
-			wg.Add(1)
-			go fork(&c, &wg, a)
-			continue loop
-	}
-}
-
 func help() {
-	lines := []string{}
+	lines := []string{
+		"-h, --h",
+		"\tthis screen",
+		"-H, --human, --human-readable",
+		"\tprint result in a human readable string (eg: 2KB instead of 2000)",
+		"anything else",
+		"\tassumed to be a directory name",
+	}
 	for _, l := range lines { fmt.Println(l) }
 }
 
@@ -104,4 +71,48 @@ func err_out(e error) {
 	fmt.Fprintf(os.Stderr, "%v\n", e)
 	if errors.Is(e, os.ErrNotExist) { return }
 	os.Exit(1)
+}
+
+func init() {
+	args := os.Args[1:]
+	loop: for _, a := range args {
+		was_print_help := print_help
+		was_human_readable := stuff.human_readable
+		do_spawn := true
+		if len(a) > 1 {
+			if a[1] == '-' {
+				old_arg := a
+				if len(a) > 2 { a = a[2:] } else {
+					a = old_arg ; goto spawn
+				}
+				switch (a) {
+				 case "help": print_help = true
+				 case "human-readable", "human": stuff.human_readable = true
+				 default: goto spawn
+				}
+			} else {
+				if a[0] == '-' {
+					for _, ch := range a[1:] {
+						switch ch {
+						 case 'h': print_help = true
+						 case 'H': stuff.human_readable = true
+						 default:  goto spawn
+						}
+					}
+				} else { goto spawn }
+			}
+			do_spawn = false
+		}
+		spawn: if !do_spawn { continue loop }
+			print_help = was_print_help
+			stuff.human_readable = was_human_readable
+			spawned_early = true
+			wg.Add(1)
+			go fork(&c, &wg, a)
+			continue loop
+	}
+	if print_help {
+		help()
+		os.Exit(0)
+	}
 }

@@ -23,12 +23,12 @@ var spawned_early bool
 
 func help() {
 	lines := []string{
-		"-h, --h",
-		"\tthis screen",
-		"-H, --human, --human-readable",
-		"\tprint result in a human readable string (eg: 2KB instead of 2000)",
-		"anything else",
-		"\tassumed to be a directory name",
+		"\x1b[33m-h\x1b[0m, \x1b[33m--help\x1b[0m",
+		"  prints this\x1b[0m",
+		"\x1b[33m-H\x1b[0m, \x1b[33m--human\x1b[0m, \x1b[33m--human-readable\x1b[0m",
+		"  print result in a human readable string \x1b[34m(eg: \x1b[35m2KB\x1b[34m instead of \x1b[35m2000\x1b[34m)\x1b[0m",
+		"\x1b[33manything else\x1b[0m",
+		"  assumed to be a directory name\x1b[0m",
 	}
 	for _, l := range lines { fmt.Println(l) }
 }

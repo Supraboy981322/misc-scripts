@@ -12,7 +12,7 @@ var stuff = struct {
 	human_readable bool
 	dir string
 } {
-	human_readable: true,
+	human_readable: false,
 	dir: ".",
 }
 

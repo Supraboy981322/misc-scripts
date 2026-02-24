@@ -4,6 +4,7 @@ import (
   "os"
 	"fmt"
   "sync"
+	"io/fs"
 	"errors"
 	"sync/atomic"
 )
@@ -69,7 +70,13 @@ func fork(c *atomic.Int64, wg *sync.WaitGroup, path string) {
 
 func err_out(e error) {
 	fmt.Fprintf(os.Stderr, "%v\n", e)
-	if errors.Is(e, os.ErrNotExist) { return }
+	whitelist := []error{
+		os.ErrNotExist,
+		fs.ErrPermission,
+	};
+	for _, err := range whitelist {
+		if errors.Is(e, err) { return }
+	}
 	os.Exit(1)
 }
 

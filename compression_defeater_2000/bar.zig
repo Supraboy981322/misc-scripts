@@ -88,7 +88,6 @@ fn cleanup(og: std.posix.termios) void {
     std.process.exit(0);
 }
 
-fn sig_handler(signum:i32) callconv(.c) void {
-    _ = signum;
+fn sig_handler(_:i32) callconv(.c) void {
     quit = true;
 }

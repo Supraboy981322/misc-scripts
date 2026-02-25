@@ -13,14 +13,16 @@ pub fn main() !void {
     t.detach();
 
     //pseudo random 
-    const r = std.crypto.random;
+    const rand = std.crypto.random;
     while (true) {
         //random char
-        const c = chars[r.intRangeAtMost(usize, 0, chars.len-1)];
+        const c = chars[rand.intRangeAtMost(usize, 0, chars.len-1)];
         //random number for ansi color
-        const n = r.intRangeAtMost(usize, 0, 6);
+        const r = rand.intRangeAtMost(usize, 0, 255);
+        const g = rand.intRangeAtMost(usize, 0, 255);
+        const b = rand.intRangeAtMost(usize, 0, 255);
         //print the char and the ansi sequence
-        try stdout.print("\x1b[3{d}m{c}\x1b[0m", .{n, c});
+        try stdout.print("\x1b[38;2;{d};{d};{d}m{c}\x1b[0m", .{r, g, b, c});
         try stdout.flush();
     }
 }

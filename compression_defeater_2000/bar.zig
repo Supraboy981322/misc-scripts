@@ -19,13 +19,15 @@ pub fn main() !void {
         //random char
         const c = chars[rand.intRangeAtMost(usize, 0, chars.len-1)];
 
-        //random rgb color for ansi
-        const r = rand.intRangeAtMost(usize, 0, 255);
-        const g = rand.intRangeAtMost(usize, 0, 255);
-        const b = rand.intRangeAtMost(usize, 0, 255);
+        //random rgb values
+        const r = rand.int(u8);
+        const g = rand.int(u8);
+        const b = rand.int(u8);
 
         //print the char and the ansi sequence
-        try stdout.print("\x1b[38;2;{d};{d};{d}m{c}\x1b[0m", .{r, g, b, c});
+        try stdout.print(
+            "\x1b[38;2;{d};{d};{d}m{c}\x1b[0m", .{r, g, b, c}
+        );
         try stdout.flush();
     }
 }

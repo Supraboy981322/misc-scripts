@@ -29,10 +29,6 @@ pub fn main() !void {
     try std.posix.tcsetattr(fd, .FLUSH, raw);
     defer cleanup(og_term_state);
 
-    //some ascii chars to index into
-    const chars:[]const u8 = "qwertzuiopasdfghjklyxcvbnm" 
-            ++ ",./;'[]\\`1234567890-=+_~!@#$%^&*(){}|:\"><?";
-
     //spawn a thread for listening to key presses
     const t = try std.Thread.spawn(.{}, keys, .{});
     t.detach();
@@ -41,7 +37,7 @@ pub fn main() !void {
     const rand = std.crypto.random;
     while (!quit) {
         //random char
-        const c = chars[rand.intRangeAtMost(usize, 0, chars.len-1)];
+        const c = rand.intRangeAtMost(u8, '0', '~');
 
         //random rgb values
         const r = rand.int(u8);

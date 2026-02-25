@@ -29,8 +29,10 @@ pub fn main() !void {
 }
 
 pub fn keys() !void { 
+    //open term alt buf
     try stdout.print("\x1b[?1049h", .{});
     try stdout.flush();
+
     //get stdin (and the file discriptor)
     var buf:[1]u8 = undefined;
     var stdin_re = std.fs.File.stdin().reader(&buf);
@@ -54,7 +56,7 @@ pub fn keys() !void {
     }
     //reset term state and exit
     try std.posix.tcsetattr(fd, .FLUSH, og_term_state);
-    try stdout.print("\x1b[?1049l", .{});
+    try stdout.print("\x1b[?1049l", .{}); //restore main term buf
     try stdout.flush();
     std.process.exit(0);
 }

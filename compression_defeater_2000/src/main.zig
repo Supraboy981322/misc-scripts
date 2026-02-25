@@ -36,7 +36,7 @@ pub fn main() !void {
     //pseudo random 
     const rand = std.crypto.random;
     while (!quit) {
-        //random char
+        //random ascii char
         const c = rand.intRangeAtMost(u8, '0', '~');
 
         //random rgb values

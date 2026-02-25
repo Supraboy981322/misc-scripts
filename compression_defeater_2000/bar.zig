@@ -7,11 +7,15 @@ const stdout = &stdout_wr.interface;
 var quit:bool = false;
 
 pub fn main() !void {
+    //create a sigaction struct
     var sig_act = std.posix.Sigaction{
-        .handler = sig_handler,
+        .handler = .{ .handler = sig_handler },
+        .mask = std.posix.sigemptyset(),
+        .flags = 0,
     };
-    try std.posix.sigaction(std.c.SIGINT, &sig_act, null);
-    try std.posix.sigaction(std.c.SIGTERM, &sig_act, null);
+    //register signals
+    std.posix.sigaction(std.c.SIG.INT, &sig_act, null);
+    std.posix.sigaction(std.c.SIG.TERM, &sig_act, null);
 
     //stdin term file discriptor
     const fd = std.fs.File.stdin().handle;
@@ -78,7 +82,7 @@ fn cleanup(og: std.posix.termios) void {
     std.posix.tcsetattr(fd, .FLUSH, og) catch {};
 
     //restore main term buf
-    stdout.print("\x1b[?1049l", .{}) catch {};
+    stdout.print("\x1b[?1049l\x1b[0m\nexiting...\n", .{}) catch {};
     stdout.flush() catch {};
 
     std.process.exit(0);

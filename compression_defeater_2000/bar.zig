@@ -4,7 +4,27 @@ var stdout_buf:[1024]u8 = undefined;
 var stdout_wr = std.fs.File.stdout().writer(&stdout_buf);
 const stdout = &stdout_wr.interface;
 
+var quit:bool = false;
+
 pub fn main() !void {
+    var sig_act = std.posix.Sigaction{
+        .handler = sig_handler,
+    };
+    try std.posix.sigaction(std.c.SIGINT, &sig_act, null);
+    try std.posix.sigaction(std.c.SIGTERM, &sig_act, null);
+
+    //stdin term file discriptor
+    const fd = std.fs.File.stdin().handle;
+
+    //prep terminal
+    const termios = try std.posix.tcgetattr(fd);
+    const og_term_state = termios; //save initial state
+    var raw = og_term_state;
+    raw.lflag.ICANON = false;
+    raw.lflag.ECHO = false;
+    try std.posix.tcsetattr(fd, .FLUSH, raw);
+    defer cleanup(og_term_state);
+
     //some ascii chars to index into
     const chars:[]const u8 = "qwertzuiopasdfghjklyxcvbnm" 
             ++ ",./;'[]\\`1234567890-=+_~!@#$%^&*(){}|:\"><?";
@@ -15,7 +35,7 @@ pub fn main() !void {
 
     //pseudo random 
     const rand = std.crypto.random;
-    while (true) {
+    while (!quit) {
         //random char
         const c = chars[rand.intRangeAtMost(usize, 0, chars.len-1)];
 
@@ -41,30 +61,30 @@ pub fn keys() !void {
     var buf:[1]u8 = undefined;
     var stdin_re = std.fs.File.stdin().reader(&buf);
     var stdin = &stdin_re.interface;
-    const fd = std.fs.File.stdin().handle;
-
-    //prep terminal
-    const termios = try std.posix.tcgetattr(fd);
-    const og_term_state = termios; //save initial state
-    var raw = og_term_state;
-    raw.lflag.ICANON = false;
-    raw.lflag.ECHO = false;
-    try std.posix.tcsetattr(fd, .FLUSH, raw);
 
     //infinitely listen to keypresses
-    loop: while (true) {
+    while (!quit) {
         switch (try stdin.takeByte()) {
-            'q' => break :loop, //break loop to cleanup when 'q' pressed 
+            'q' => quit = true, //break loop to cleanup when 'q' pressed 
             else => {}, //ignore everything else
         }
     }
+}
+
+fn cleanup(og: std.posix.termios) void {
+    const fd = std.fs.File.stdin().handle;
 
     //reset term state
-    try std.posix.tcsetattr(fd, .FLUSH, og_term_state);
+    std.posix.tcsetattr(fd, .FLUSH, og) catch {};
 
     //restore main term buf
-    try stdout.print("\x1b[?1049l", .{});
-    try stdout.flush();
+    stdout.print("\x1b[?1049l", .{}) catch {};
+    stdout.flush() catch {};
 
     std.process.exit(0);
+}
+
+fn sig_handler(signum:i32) callconv(.c) void {
+    _ = signum;
+    quit = true;
 }

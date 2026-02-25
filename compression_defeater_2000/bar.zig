@@ -18,10 +18,12 @@ pub fn main() !void {
     while (true) {
         //random char
         const c = chars[rand.intRangeAtMost(usize, 0, chars.len-1)];
-        //random number for ansi color
+
+        //random rgb color for ansi
         const r = rand.intRangeAtMost(usize, 0, 255);
         const g = rand.intRangeAtMost(usize, 0, 255);
         const b = rand.intRangeAtMost(usize, 0, 255);
+
         //print the char and the ansi sequence
         try stdout.print("\x1b[38;2;{d};{d};{d}m{c}\x1b[0m", .{r, g, b, c});
         try stdout.flush();
@@ -54,9 +56,13 @@ pub fn keys() !void {
             else => {}, //ignore everything else
         }
     }
-    //reset term state and exit
+
+    //reset term state
     try std.posix.tcsetattr(fd, .FLUSH, og_term_state);
-    try stdout.print("\x1b[?1049l", .{}); //restore main term buf
+
+    //restore main term buf
+    try stdout.print("\x1b[?1049l", .{});
     try stdout.flush();
+
     std.process.exit(0);
 }

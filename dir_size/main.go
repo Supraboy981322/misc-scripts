@@ -66,13 +66,14 @@ func fork(c *atomic.Int64, wg *sync.WaitGroup, path string) {
 	files, e := os.ReadDir(path)
 	if e != nil { err_out(e) ; return }
 	loop: for _, file := range files {
-		if file.IsDir() {
+		i, e := file.Info()
+		if e != nil { err_out(e) ; continue loop }
+		m := i.Mode()
+		if m.IsDir() {
 			wg.Add(1)
 			if (verbosity) { total_routines.Add(1) }
 			go fork(c, wg, path+"/"+file.Name())
-		} else {
-			i, e := file.Info()
-			if e != nil { err_out(e) ; continue loop }
+		} else if m.IsRegular() {
 			c.Add(i.Size())
 		}
 	}

@@ -17,10 +17,14 @@ var stuff = struct {
 	dir: ".",
 }
 
-var c atomic.Int64
-var wg sync.WaitGroup
-var print_help bool
-var spawned_early bool
+var (
+	c atomic.Int64
+	wg sync.WaitGroup
+	print_help bool
+	spawned_early bool
+	verbosity bool
+	total_routines atomic.Int64
+)
 
 func help() {
 	lines := []string{
@@ -37,6 +41,7 @@ func help() {
 func main() {
 	if !spawned_early {
 		wg.Add(1)
+		if (verbosity) { total_routines.Add(1) }
 		go fork(&c, &wg, stuff.dir)
 	}
   wg.Wait()
@@ -50,6 +55,10 @@ func main() {
 		final_size = fmt.Sprintf("%.2f%s", si, exts[i])
 	} else { final_size = fmt.Sprintf("%d", raw_size) }
 	fmt.Printf("%s\n", final_size)
+
+	if (verbosity) {
+		fmt.Printf("total forks spawned %d\n", total_routines.Load());
+	}
 }
 
 func fork(c *atomic.Int64, wg *sync.WaitGroup, path string) {
@@ -59,6 +68,7 @@ func fork(c *atomic.Int64, wg *sync.WaitGroup, path string) {
 	loop: for _, file := range files {
 		if file.IsDir() {
 			wg.Add(1)
+			if (verbosity) { total_routines.Add(1) }
 			go fork(c, wg, path+"/"+file.Name())
 		} else {
 			i, e := file.Info()
@@ -94,6 +104,7 @@ func init() {
 				}
 				switch (a) {
 				 case "help": print_help = true
+				 case "verbose": verbosity = true
 				 case "human-readable", "human": stuff.human_readable = true
 				 default: goto spawn
 				}
@@ -102,6 +113,7 @@ func init() {
 					for _, ch := range a[1:] {
 						switch ch {
 						 case 'h': print_help = true
+						 case 'v': verbosity = true
 						 case 'H': stuff.human_readable = true
 						 default:  goto spawn
 						}
@@ -115,6 +127,7 @@ func init() {
 			stuff.human_readable = was_human_readable
 			spawned_early = true
 			wg.Add(1)
+			if (verbosity) { total_routines.Add(1) }
 			go fork(&c, &wg, a)
 			continue loop
 	}

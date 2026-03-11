@@ -18,6 +18,7 @@ var stuff = struct {
 }
 
 var (
+	quiet bool
 	c atomic.Int64
 	wg sync.WaitGroup
 	print_help bool
@@ -80,7 +81,9 @@ func fork(c *atomic.Int64, wg *sync.WaitGroup, path string) {
 }
 
 func err_out(e error) {
-	fmt.Fprintf(os.Stderr, "%v\n", e)
+	if !quiet || (quiet && verbosity) {
+		fmt.Fprintf(os.Stderr, "%v\n", e)
+	}
 	whitelist := []error{
 		os.ErrNotExist,
 		fs.ErrPermission,
@@ -105,7 +108,18 @@ func init() {
 				}
 				switch (a) {
 				 case "help": print_help = true
-				 case "verbose": verbosity = true
+				 case "verbose":
+					if !(quiet && verbosity) {
+						verbosity = true
+					} else {
+						err_out(errors.New("conflicting arguments: quiet and verbose"))
+					}
+				 case "quiet":
+					if !(quiet && verbosity) {
+						quiet = true;
+					} else {
+						err_out(errors.New("conflicting arguments: quiet and verbose"))
+					}
 				 case "human-readable", "human": stuff.human_readable = true
 				 default: goto spawn
 				}
@@ -114,8 +128,19 @@ func init() {
 					for _, ch := range a[1:] {
 						switch ch {
 						 case 'h': print_help = true
-						 case 'v': verbosity = true
+						 case 'v':
+							if !(quiet && verbosity) {
+								verbosity = true
+							} else {
+								err_out(errors.New("conflicting arguments: quiet and verbose"))
+							}
 						 case 'H': stuff.human_readable = true
+						 case 'q':
+							if !(quiet && verbosity) {
+								quiet = true
+							} else {
+								err_out(errors.New("conflicting arguments: quiet and verbose"))
+							}
 						 default:  goto spawn
 						}
 					}
@@ -135,5 +160,12 @@ func init() {
 	if print_help {
 		help()
 		os.Exit(0)
+	}
+
+	//happens, for some reason (despite being checked earlier)
+	if (quiet && verbosity) {
+		err_out(
+			errors.New("conflicting arguments: quiet and verbose"),
+		)
 	}
 }

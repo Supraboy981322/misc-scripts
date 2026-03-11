@@ -33,6 +33,10 @@ func help() {
 		"  prints this\x1b[0m",
 		"\x1b[33m-H\x1b[0m, \x1b[33m--human\x1b[0m, \x1b[33m--human-readable\x1b[0m",
 		"  print result in a human readable string \x1b[34m(eg: \x1b[35m2KB\x1b[34m instead of \x1b[35m2000\x1b[34m)\x1b[0m",
+		"\x1b[33m-q\x1b[0m, \x1b[33m--quiet\x1b[0m",
+		"  quiet, don't print any errors",
+		"\x1b[33m-v\x1b[0m, \x1b[33m--verbose\x1b[0m",
+		"  (ever-so-slightly) more verbose logging",
 		"\x1b[33manything else\x1b[0m",
 		"  assumed to be a directory name\x1b[0m",
 	}

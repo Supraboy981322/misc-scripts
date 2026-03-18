@@ -63,9 +63,12 @@ pub fn main() !void {
     const path:[]const []const u8 = &[_][]const u8 { home, ".config", "sniffer.zon" };
     const dataset_path = try std.fs.path.join(alloc, path);
     defer alloc.free(dataset_path);
-    var dataset_file = try std.fs.openFileAbsolute(dataset_path, .{
+    var dataset_file = std.fs.openFileAbsolute(dataset_path, .{
         .lock = .exclusive,
-    });
+    }) catch |e| {
+        try stderr.print("couldn't read dataset file ({s}): {t}\n", .{dataset_path, e});
+        std.process.exit(1);
+    };
     defer dataset_file.close();
 
     var dataset_reader = &@constCast(&dataset_file.reader(&.{})).interface;

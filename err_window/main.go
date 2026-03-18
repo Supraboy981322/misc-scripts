@@ -1,3 +1,10 @@
+#! /usr/bin/env nix-shell
+#! nix-shell -i bash -p go mesa libXi libXcursor libXrandr libglvnd libXinerama wayland libxkbcommon pkg-config bash
+TMP=$(mktemp "$(dirname "$0")/tmp_XXXXXXX.go")
+trap 'rm -f "$TMP"' EXIT INT TERM
+sed '1,7 s/.*//' "$0" > "$TMP"
+go run "$TMP" "$@"
+exit $?
 package main
 
 import (

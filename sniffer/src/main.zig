@@ -29,14 +29,18 @@ pub fn main() !void {
 
     //if the filename isn't null (meaning set by arg) 
     if (filename) |name| {
+        //stat the file before reading it
         const stat = std.fs.cwd().statFile(name) catch |e| {
             try stderr.print("couldn't stat file: {t}\n", .{e});
             std.process.exit(1);
         };
+
+        //err if not a file
         if (stat.kind != .file) {
             try stderr.print("{s} does not appear to be a file\n", .{name});
             std.process.exit(1);
         }
+
         //attempt to open the file
         //   TODO: handle errors here in a 'catch' block
         var file = std.fs.cwd().openFile(name, .{
@@ -45,8 +49,10 @@ pub fn main() !void {
             try stderr.print("couldn't open file: {t}\n", .{e});
             std.process.exit(1);
         };
+
         //a reader for the file
         var reader = &@constCast(&file.reader(&.{})).interface;
+
         //just read the whole thing into memory
         input = try reader.allocRemaining(alloc, .unlimited);
     } else {
@@ -55,14 +61,19 @@ pub fn main() !void {
         std.process.exit(1);
     }
     
+    //get the home directory
     const home = std.process.getEnvVarOwned(alloc, "HOME") catch {
         try stderr.print("either unsupported (non-UNIX) system or $HOME not set", .{});
         std.process.exit(1);
     };
     defer alloc.free(home);
+
+    //construct the path to the config file 
     const path:[]const []const u8 = &[_][]const u8 { home, ".config", "sniffer.zon" };
     const dataset_path = try std.fs.path.join(alloc, path);
     defer alloc.free(dataset_path);
+
+    //open the dataset file
     var dataset_file = std.fs.openFileAbsolute(dataset_path, .{
         .lock = .exclusive,
     }) catch |e| {
@@ -71,6 +82,7 @@ pub fn main() !void {
     };
     defer dataset_file.close();
 
+    //read the entire dataset file into memory
     var dataset_reader = &@constCast(&dataset_file.reader(&.{})).interface;
     const dataset_string_R = try dataset_reader.allocRemaining(alloc, .unlimited);
     defer alloc.free(dataset_string_R);
@@ -78,6 +90,7 @@ pub fn main() !void {
     const dataset_string:[:0]const u8 = try alloc.dupeZ(u8, dataset_string_R);
     defer alloc.free(dataset_string);
     
+    //parse the dataset into zon
     const dataset_zon = std.zon.parse.fromSlice(
         []table.Filetype, alloc, dataset_string, null, .{}
     ) catch |e| {

@@ -29,11 +29,22 @@ pub fn main() !void {
 
     //if the filename isn't null (meaning set by arg) 
     if (filename) |name| {
+        const stat = std.fs.cwd().statFile(name) catch |e| {
+            try stderr.print("couldn't stat file: {t}\n", .{e});
+            std.process.exit(1);
+        };
+        if (stat.kind != .file) {
+            try stderr.print("{s} does not appear to be a file\n", .{name});
+            std.process.exit(1);
+        }
         //attempt to open the file
         //   TODO: handle errors here in a 'catch' block
-        var file = try std.fs.cwd().openFile(name, .{
+        var file = std.fs.cwd().openFile(name, .{
             .lock = .exclusive,
-        });
+        }) catch |e| {
+            try stderr.print("couldn't open file: {t}\n", .{e});
+            std.process.exit(1);
+        };
         //a reader for the file
         var reader = &@constCast(&file.reader(&.{})).interface;
         //just read the whole thing into memory

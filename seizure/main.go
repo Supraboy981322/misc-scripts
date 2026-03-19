@@ -2,11 +2,13 @@ package main
 
 import (
 	"os"
+	"io"
 	"log"
 	"bytes"
 	_"embed"
 	"net/http"
 	"math/rand/v2"
+	"github.com/gliderlabs/ssh"
 	keeper "github.com/Supraboy981322/keeper/golang"
 )
 
@@ -22,17 +24,24 @@ func init() {
 }
 
 func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("request: %s", r.RemoteAddr)
-		for {
-			frame := stolen_data
-			frame = bytes.ReplaceAll(frame, []byte("{{one}}"), random_hex())
-			frame = bytes.ReplaceAll(frame, []byte("{{two}}"), random_hex())
-			w.Write(frame)
-		}
+	ssh.Handle(func(s ssh.Session) {
+		log.Print("connection (ssh)")
+		give_seizure(s)
 	})
-	log.Printf("listening on port: %s", port)
-	panic(http.ListenAndServe(":"+port, nil))
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("request (http): %s", r.RemoteAddr)
+		give_seizure(w)
+	})
+	go func() {
+		log.Printf("http listening on port: %d", 22222)
+		panic(ssh.ListenAndServe(":22222", nil))
+	}()
+	go func() {
+		log.Printf("ssh listening on port: %s", port)
+		panic(http.ListenAndServe(":"+port, nil))
+	}()
+
+	select{}
 }
 
 func random_hex() []byte {
@@ -43,4 +52,13 @@ func random_hex() []byte {
 		keeper.Add(&res, picked)
 	}
 	return res
+}
+
+func give_seizure(w io.Writer) { 
+		for {
+			frame := stolen_data
+			frame = bytes.ReplaceAll(frame, []byte("{{one}}"), random_hex())
+			frame = bytes.ReplaceAll(frame, []byte("{{two}}"), random_hex())
+			w.Write(frame)
+		}
 }

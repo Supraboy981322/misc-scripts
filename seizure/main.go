@@ -4,6 +4,7 @@ import (
 	"os"
 	"io"
 	"log"
+	"net"
 	"bytes"
 	_"embed"
 	"net/http"
@@ -44,6 +45,8 @@ func main() {
 		panic(http.ListenAndServe(":"+port, nil))
 	}()
 
+	go panic(tcp())
+
 	select{}
 }
 
@@ -63,5 +66,21 @@ func give_seizure(w io.Writer) {
 		frame = bytes.ReplaceAll(frame, []byte("{{one}}"), random_hex())
 		frame = bytes.ReplaceAll(frame, []byte("{{two}}"), random_hex())
 		w.Write(frame)
+	}
+}
+
+func tcp() error {
+	listener, e := net.Listen("tcp", ":7445")
+	if e != nil { return e }
+	defer listener.Close() //shouldn't happen anyways
+	log.Printf("tcp listening on port 7445")
+
+	for {
+		conn, e := listener.Accept()
+		if e != nil { continue }
+		go func() {
+			log.Printf("connection (tcp): %s", "")
+			give_seizure(conn)
+		}()
 	}
 }

@@ -33,11 +33,11 @@ func main() {
 		give_seizure(w)
 	})
 	go func() {
-		log.Printf("http listening on port: %d", 22222)
+		log.Printf("ssh listening on port: %d", 22222)
 		panic(ssh.ListenAndServe(":22222", nil))
 	}()
 	go func() {
-		log.Printf("ssh listening on port: %s", port)
+		log.Printf("http listening on port: %s", port)
 		panic(http.ListenAndServe(":"+port, nil))
 	}()
 

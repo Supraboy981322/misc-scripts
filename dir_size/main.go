@@ -4,7 +4,6 @@ import (
   "os"
 	"fmt"
   "sync"
-	"io/fs"
 	"errors"
 	"sync/atomic"
 )
@@ -26,22 +25,6 @@ var (
 	verbosity bool
 	total_routines atomic.Int64
 )
-
-func help() {
-	lines := []string{
-		"\x1b[33m-h\x1b[0m, \x1b[33m--help\x1b[0m",
-		"  prints this\x1b[0m",
-		"\x1b[33m-H\x1b[0m, \x1b[33m--human\x1b[0m, \x1b[33m--human-readable\x1b[0m",
-		"  print result in a human readable string \x1b[34m(eg: \x1b[35m2KB\x1b[34m instead of \x1b[35m2000\x1b[34m)\x1b[0m",
-		"\x1b[33m-q\x1b[0m, \x1b[33m--quiet\x1b[0m",
-		"  quiet, don't print any errors",
-		"\x1b[33m-v\x1b[0m, \x1b[33m--verbose\x1b[0m",
-		"  (ever-so-slightly) more verbose logging",
-		"\x1b[33manything else\x1b[0m",
-		"  assumed to be a directory name\x1b[0m",
-	}
-	for _, l := range lines { fmt.Println(l) }
-}
 
 func main() {
 	if !spawned_early {
@@ -84,75 +67,16 @@ func fork(c *atomic.Int64, wg *sync.WaitGroup, path string) {
 	}
 }
 
-func err_out(e error) {
-	if !quiet || (quiet && verbosity) {
-		fmt.Fprintf(os.Stderr, "%v\n", e)
-	}
-	whitelist := []error{
-		os.ErrNotExist,
-		fs.ErrPermission,
-	};
-	for _, err := range whitelist {
-		if errors.Is(e, err) { return }
-	}
-	os.Exit(1)
-}
-
 func init() {
 	args := os.Args[1:]
 	loop: for _, a := range args {
 		was_print_help := print_help
 		was_human_readable := stuff.human_readable
-		do_spawn := true
 		if len(a) > 1 {
-			if a[1] == '-' {
-				old_arg := a
-				if len(a) > 2 { a = a[2:] } else {
-					a = old_arg ; goto spawn
-				}
-				switch (a) {
-				 case "help": print_help = true
-				 case "verbose":
-					if !(quiet && verbosity) {
-						verbosity = true
-					} else {
-						err_out(errors.New("conflicting arguments: quiet and verbose"))
-					}
-				 case "quiet":
-					if !(quiet && verbosity) {
-						quiet = true;
-					} else {
-						err_out(errors.New("conflicting arguments: quiet and verbose"))
-					}
-				 case "human-readable", "human": stuff.human_readable = true
-				 default: goto spawn
-				}
-			} else {
-				if a[0] == '-' {
-					for _, ch := range a[1:] {
-						switch ch {
-						 case 'h': print_help = true
-						 case 'v':
-							if !(quiet && verbosity) {
-								verbosity = true
-							} else {
-								err_out(errors.New("conflicting arguments: quiet and verbose"))
-							}
-						 case 'H': stuff.human_readable = true
-						 case 'q':
-							if !(quiet && verbosity) {
-								quiet = true
-							} else {
-								err_out(errors.New("conflicting arguments: quiet and verbose"))
-							}
-						 default:  goto spawn
-						}
-					}
-				} else { goto spawn }
-			}
-			do_spawn = false
+			if Args.check(a) { goto spawn }
+			continue loop
 		}
-		spawn: if !do_spawn { continue loop }
+		spawn: {
 			print_help = was_print_help
 			stuff.human_readable = was_human_readable
 			spawned_early = true
@@ -160,6 +84,7 @@ func init() {
 			if (verbosity) { total_routines.Add(1) }
 			go fork(&c, &wg, a)
 			continue loop
+		}
 	}
 	if print_help {
 		help()

@@ -36,11 +36,16 @@ func main() {
 	raw_size := c.Load()
 	var final_size string
 	if (stuff.human_readable) {
-		si := float64(raw_size)
-		exts := []string{ "B", "KB", "MB", "GB", "TB", "PB", "EB", "YB" }
-		i := 0;
-		for si > 1000.0 { si /= 1000.0 ; i++ }
-		final_size = fmt.Sprintf("%.2f%s", si, exts[i])
+		var d int64 = 1000
+		if raw_size < d {
+			final_size = fmt.Sprintf("%d B", raw_size)
+		} else {
+			var e int
+			for n := raw_size / 1000; n >= 1000; n /= 1000 {
+				d *= 1000  ;  e++
+			}
+			final_size = fmt.Sprintf("%.2f %cB", float64(raw_size)/float64(d), "KMBTPEZY"[e])
+		}
 	} else { final_size = fmt.Sprintf("%d", raw_size) }
 	fmt.Printf("%s\n", final_size)
 

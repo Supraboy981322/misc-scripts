@@ -44,7 +44,7 @@ func main() {
 			for n := raw_size / 1000; n >= 1000; n /= 1000 {
 				d *= 1000  ;  e++
 			}
-			final_size = fmt.Sprintf("%.2f %cB", float64(raw_size)/float64(d), "KMBTPEZY"[e])
+			final_size = fmt.Sprintf("%.2f %cB", float64(raw_size)/float64(d), "KMGTPEZY"[e])
 		}
 	} else { final_size = fmt.Sprintf("%d", raw_size) }
 	fmt.Printf("%s\n", final_size)

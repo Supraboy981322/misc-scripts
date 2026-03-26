@@ -3,7 +3,8 @@ const std = @import("std");
 const stderr = @import("globals.zig").stderr;
 
 const Config = struct {
-    @"test domain":[]const u8
+    @"test domain":[]const u8,
+    @"test interval": u64,
 };
 
 pub fn read(returning_allocator:std.mem.Allocator, src:[]const u8) !Config {
@@ -19,9 +20,12 @@ pub fn read(returning_allocator:std.mem.Allocator, src:[]const u8) !Config {
 
     var config:Config = .{
         .@"test domain" = "google.com",
+        .@"test interval" = 1,
     };
 
-    var setting:enum { @"test domain", invalid } = .invalid;
+    var setting:enum {
+        @"test domain", @"test interval", invalid
+    } = .invalid;
 
     var line_no:usize = 1;
     for (src) |c| switch (c) {
@@ -67,6 +71,15 @@ pub fn read(returning_allocator:std.mem.Allocator, src:[]const u8) !Config {
                 switch (setting) {
                     .@"test domain" => {
                         config.@"test domain" = try returning_allocator.dupe(u8, trimmed);
+                    },
+                    .@"test interval" => {
+                        config.@"test interval" = std.fmt.parseInt(u64, trimmed, 10) catch |e| {
+                            try stderr.print(
+                                "invalid config value for option {s}: {t} (|{s}| on line {d})\n",
+                                .{@tagName(setting), e, trimmed, line_no}
+                            );
+                            std.process.exit(1);
+                        };
                     },
                     .invalid => {
                         try stderr.print(

@@ -22,7 +22,7 @@ pub fn main() !void {
     loop: while (true) {
         defer {
             if (first) first = false;
-            std.Thread.sleep(std.time.ns_per_s);
+            std.Thread.sleep(std.time.ns_per_s * config.@"test interval");
         }
 
         try stdout.print("checking...  ", .{});

@@ -1,4 +1,4 @@
-module seizure
+module github.com/Supraboy981322/misc-scripts/seizure/window
 
 go 1.25.7
 

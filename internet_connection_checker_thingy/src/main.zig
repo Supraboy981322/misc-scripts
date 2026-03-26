@@ -12,6 +12,10 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const alloc = gpa.allocator();
 
+    const config = try @import("config.zig").read(alloc, @embedFile("config"));
+
+    try stdout.print("using the domain: {s}\n", .{config.@"test domain"});
+
     var last_success:bool = false;
     var first:bool = true;
 
@@ -22,7 +26,7 @@ pub fn main() !void {
         }
 
         try stdout.print("checking...  ", .{});
-        _ = std.net.getAddressList(alloc, addr, 80) catch |e| switch (e) {
+        _ = std.net.getAddressList(alloc, config.@"test domain", 80) catch |e| switch (e) {
             error.NameServerFailure, error.UnknownHostName => {
                 defer last_success = false;
 

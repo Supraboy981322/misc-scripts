@@ -24,19 +24,20 @@ pub fn main() !void {
         try stdout.print("checking...  ", .{});
         _ = std.net.getAddressList(alloc, addr, 80) catch |e| switch (e) {
             error.NameServerFailure, error.UnknownHostName => {
+                defer last_success = false;
+
+                try stderr.print("failed\n", .{});
                 if (last_success or first)
                     try hlp.notify("failed to resolve DNS");
-                try stderr.print("failed\n", .{});
-                last_success = false;
+
                 continue :loop;
             },
             else => @panic(@errorName(e)),
         };
+        defer last_success = true;
 
         try stdout.print("success\n", .{});
         if (!last_success)
             try hlp.notify("DNS was able to be resolved");
-
-        last_success = true;
     }
 }

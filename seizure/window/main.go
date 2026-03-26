@@ -10,7 +10,7 @@ import (
 var can_move bool
 
 func main() {
-	rl.InitWindow(1, 1, "seizure")
+	rl.InitWindow(200, 200, "seizure")
 
 	{
 		center := rl.GetWindowPosition();

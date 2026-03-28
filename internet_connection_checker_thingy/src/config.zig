@@ -2,7 +2,7 @@ const std = @import("std");
 
 const stderr = @import("globals.zig").stderr;
 
-const Config = struct {
+pub const Config = struct {
     @"test domain":[]const u8,
     @"test interval": u64,
 };

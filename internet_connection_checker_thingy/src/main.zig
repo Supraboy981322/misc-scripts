@@ -12,7 +12,33 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const alloc = gpa.allocator();
 
-    const config = try @import("config.zig").read(alloc, @embedFile("config"));
+    var config:@import("config.zig").Config = undefined;
+    {
+        const home_dir = try std.process.getEnvVarOwned(alloc, "HOME");
+        defer alloc.free(home_dir);
+        const path = try std.fs.path.join(alloc, &[_][]const u8{
+            home_dir,
+            ".config",
+            "Supraboy981322",
+            "internet_connection_checker_thingy",
+            "config"
+        });
+        defer alloc.free(path);
+        var file = std.fs.openFileAbsolute(path, .{}) catch |e| {
+            try stderr.print("{s}: {s}\n", .{
+                switch (e) {
+                    error.FileNotFound => "couldn't find config file",
+                    else => @errorName(e),
+                },
+                path
+            });
+            std.process.exit(1);
+        };
+        defer file.close();
+        var reader = &@constCast(&file.reader(&.{})).interface;
+        const conf_src = try reader.allocRemaining(alloc, .unlimited); 
+        config = try @import("config.zig").read(alloc, conf_src);
+    }
 
     try stdout.print("using the domain: {s}\n", .{config.@"test domain"});
 

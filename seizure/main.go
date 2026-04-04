@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 	"bytes"
 	_"embed"
 	"strconv"
@@ -91,22 +92,24 @@ func main() {
 		}
 	})
 
-	go func() {
+	var wg sync.WaitGroup
+
+	wg.Go(func() {
 		log.Printf("\t\t%s", fmt_port_print("http", HTTP))
 		panic(http.ListenAndServe(":"+strconv.Itoa(ports[HTTP]), nil))
-	}()
+	})
 
-	go func() {
+	wg.Go(func() {
 		log.Printf("\t\t%s", fmt_port_print("ssh", SSH))
 		panic(ssh.ListenAndServe(":"+strconv.Itoa(ports[SSH]), nil))
-	}()
+	})
 
-	go func() {
+	wg.Go(func() {
 		log.Printf("\t\t%s", fmt_port_print("TCP", TCP))
 		panic(tcp())
-	}()
+	})
 
-	select{}
+	wg.Wait()
 }
 
 func random_hex() []byte {

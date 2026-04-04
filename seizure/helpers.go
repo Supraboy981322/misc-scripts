@@ -11,7 +11,7 @@ func is_browser(r *http.Request) bool {
 	accept := r.Header["Accept"]
 	if len(accept) > 1 { return true }
 	if len(accept) < 1 { return false }
-	if len(split_header(accept[0], ',')) > 1 { return true }
+	if num_of(accept[0], ',') > 1 { return true }
 	return false
 }
 
@@ -85,20 +85,10 @@ func random_hex() []byte {
 	return res
 }
 
-func split_header(og string, by rune) []string {
-	var res []string
-	var start int
-	loop: for i, r := range og {
-		if r == by {
-			if start < i && og[start:i] != string(by) {
-				res = append(res, og[start:i])
-				start = i+1
-			}
-			continue loop
-		}
-	}
-	if og[start:] != string(by) && len(og[start:]) > 0 {
-		res = append(res, og[start:])
+func num_of(thing string, needle rune) int {
+	var res int 
+	for _, r := range thing {
+		if r == needle { res++ }
 	}
 	return res
 }

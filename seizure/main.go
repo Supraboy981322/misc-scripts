@@ -5,7 +5,6 @@ import (
 	"io"
 	"net"
 	"sync"
-	"bytes"
 	_"embed"
 	"strconv"
 	"net/http"
@@ -56,7 +55,31 @@ func init() {
 			)
 			css_stuff = append(css_stuff, newline...)
 		}
-		browser_page = bytes.ReplaceAll(browser_page, []byte("/* ze stuff */"), css_stuff)
+		var seeking bool
+		var mem []byte
+		copied := append([]byte(nil), browser_page...)
+		browser_page = nil
+		loop2: for i := 0; i < len(copied); i++ {
+			b := copied[i]
+			if b == '/' {
+				if copied[i+1] == '*' {
+					seeking = true;
+					i++
+				} else if seeking && string(mem) == "ze stuff" {
+					browser_page = append(browser_page, css_stuff...)
+					seeking = false
+					mem = nil
+				}
+				continue loop2
+			}
+			if seeking {
+				if b != '*' && copied[i+1] != '/' {
+					mem = append(mem, b)
+				}
+			} else {
+				browser_page = append(browser_page, b)
+			}
+		}
 	}
 	{
 		var mem []byte

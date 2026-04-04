@@ -65,7 +65,7 @@ func init() {
 				if copied[i+1] == '*' {
 					seeking = true;
 					i++
-				} else if seeking && string(mem) == "ze stuff" {
+				} else if seeking && string(mem) == " ze stuff " {
 					browser_page = append(browser_page, css_stuff...)
 					seeking = false
 					mem = nil

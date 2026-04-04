@@ -155,9 +155,16 @@ func main() {
 
 func give_seizure(w io.Writer) { 
 	for {
-		frame := stolen_data
-		frame = bytes.ReplaceAll(frame, []byte("{{one}}"), random_hex())
-		frame = bytes.ReplaceAll(frame, []byte("{{two}}"), random_hex())
+		var frame []byte
+		one, two := random_hex(), random_hex()
+		for _, b := range stolen_data {
+			//could've been a ternary; such a limiting language 
+			switch b {
+				case 0:  { frame = append(frame, one...) }
+				case 1:  { frame = append(frame, two...) }
+				default: { frame = append(frame, b) }
+			}
+		}
 		w.Write(frame)
 	}
 }

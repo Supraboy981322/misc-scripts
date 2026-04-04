@@ -61,7 +61,7 @@ func init() {
 		browser_page = nil
 		loop2: for i := 0; i < len(copied); i++ {
 			b := copied[i]
-			if b == '/' {
+			if b == '/' && (copied[i+1] == '*' || copied[i-1] == '*') {
 				if copied[i+1] == '*' {
 					seeking = true;
 					i++

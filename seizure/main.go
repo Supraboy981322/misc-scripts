@@ -7,6 +7,7 @@ import (
 	"net"
 	"bytes"
 	_"embed"
+	"strconv"
 	"net/http"
 	"math/rand/v2"
 	"github.com/gliderlabs/ssh"
@@ -16,11 +17,31 @@ import (
 //go:embed foo.txt
 var stolen_data []byte
 
+//go:embed foo.html
+var browser_page []byte
+
 var port = "9983"
 
 func init() {
 	if len(os.Args) > 1 {
 		port = os.Args[1]
+	}
+	{
+		var css_stuff []byte
+		for i := range 100 {
+			newline := append(
+				[]byte(strconv.Itoa(i)),
+				append(
+					append(
+						[]byte("%{background-color:"),
+						random_hex()...,
+					),
+					'}',
+				)...,
+			)
+			css_stuff = append(css_stuff, newline...)
+		}
+		browser_page = bytes.ReplaceAll(browser_page, []byte("/* ze stuff */"), css_stuff)
 	}
 }
 
@@ -31,8 +52,13 @@ func main() {
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("request (http): %s", r.RemoteAddr)
-		give_seizure(w)
+		if is_browser(r) {
+			log.Printf("request (browser) (http): %s", r.RemoteAddr)
+			w.Write(browser_page)
+		} else {
+			log.Printf("request (not browser) (http): %s", r.RemoteAddr)
+			give_seizure(w)
+		}
 	})
 
 	go func() {

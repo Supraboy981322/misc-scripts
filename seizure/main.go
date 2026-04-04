@@ -84,3 +84,11 @@ func tcp() error {
 		}()
 	}
 }
+
+func is_browser(r *http.Request) bool { 
+	accept := r.Header["Accept"]
+	if len(accept) > 1 { return true }
+	if len(accept) < 1 { return false }
+	if len(bytes.Split([]byte(accept[0]), []byte{','})) > 1 { return true }
+	return false
+}

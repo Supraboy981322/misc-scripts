@@ -3,13 +3,20 @@ package main
 import ("os";"fmt";"strconv")
 
 func main() {
+	var str string
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "not enough args, need number")
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr, "reading from stdin")
+		_, e := fmt.Fscanln(os.Stdin, &str)
+		if e != nil {
+			fmt.Fprintf(os.Stderr, "failed to read from stdin: %v\n", e)
+			return
+		}
+	} else {
+		str = os.Args[1]
 	}
-	raw_size, e := strconv.ParseInt(os.Args[1], 10, 64)
+	raw_size, e := strconv.ParseInt(str, 10, 64)
 	if e != nil {
-		fmt.Fprintf(os.Stderr, "not a number: %s\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "not a number: %s\n", str)
 		os.Exit(1)
 	}
 	var d int64 = 1000

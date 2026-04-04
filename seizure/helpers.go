@@ -2,18 +2,16 @@ package main
 
 import (
 	"os"
-	"bytes"
 	"strconv"
 	"net/http"
 	"math/rand/v2"
-	keeper "github.com/Supraboy981322/keeper/golang"
 )
 
 func is_browser(r *http.Request) bool { 
 	accept := r.Header["Accept"]
 	if len(accept) > 1 { return true }
 	if len(accept) < 1 { return false }
-	if len(bytes.Split([]byte(accept[0]), []byte{','})) > 1 { return true }
+	if len(split_header(accept[0], ',')) > 1 { return true }
 	return false
 }
 
@@ -82,7 +80,25 @@ func random_hex() []byte {
 	possible := []byte("0123456789abcdef")
 	for range 6 {
 		picked := possible[rand.IntN(len(possible))]
-		keeper.Add(&res, picked)
+		res = append(res, picked)
+	}
+	return res
+}
+
+func split_header(og string, by rune) []string {
+	var res []string
+	var start int
+	loop: for i, r := range og {
+		if r == by {
+			if start < i && og[start:i] != string(by) {
+				res = append(res, og[start:i])
+				start = i+1
+			}
+			continue loop
+		}
+	}
+	if og[start:] != string(by) && len(og[start:]) > 0 {
+		res = append(res, og[start:])
 	}
 	return res
 }

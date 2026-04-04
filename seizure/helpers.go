@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"fmt"
 	"bytes"
 	"strconv"
 	"net/http"
@@ -37,9 +36,8 @@ func split(in string) struct{ proto Protocol; port int } {
 				case "ssh":  { proto = SSH  }
 				case "tcp":  { proto = TCP  }
 				default: {
-					fmt.Fprintf(
-						os.Stderr,
-						"invalid or unsupported protocol: %s\n",
+					log.Error(
+						"invalid or unsupported protocol:",
 						string(proto_raw),
 					)
 					os.Exit(1)
@@ -62,9 +60,8 @@ func split(in string) struct{ proto Protocol; port int } {
 			}
 
 			bad_port: {
-				fmt.Fprintf(
-					os.Stderr,
-					"invalid port number: %s\n",
+				log.Error(
+					"invalid port number:",
 					in[i+1:],
 				)
 				os.Exit(1)
@@ -72,9 +69,8 @@ func split(in string) struct{ proto Protocol; port int } {
 		}
 	}
 
-	fmt.Fprintf(
-		os.Stderr,
-		"invalid port assignment (need something like this: 'http=9774'): %s",
+	log.Error(
+		"invalid port assignment (need something like this: 'http=9774'):",
 		in,
 	)
 	os.Exit(1)

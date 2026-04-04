@@ -3,8 +3,6 @@ package main
 import (
 	"os"
 	"io"
-	"fmt"
-	"log"
 	"net"
 	"sync"
 	"bytes"
@@ -13,6 +11,8 @@ import (
 	"net/http"
 	"github.com/gliderlabs/ssh"
 )
+
+var log Log
 
 //go:embed foo.txt
 var stolen_data []byte
@@ -43,6 +43,7 @@ func init() {
 	{
 		var css_stuff []byte
 		for i := range 100 {
+			//who needs fmt.Sprintf anyways?
 			newline := append(
 				[]byte(strconv.Itoa(i)),
 				append(
@@ -57,35 +58,77 @@ func init() {
 		}
 		browser_page = bytes.ReplaceAll(browser_page, []byte("/* ze stuff */"), css_stuff)
 	}
+	{
+		var mem []byte
+		var seeking bool
+		var copied = append([]byte(nil), stolen_data...)
+		stolen_data = nil
+		loop: for _, b := range copied {
+				if seeking {
+					if b == '{' { continue loop }
+					if b != '}'{
+						mem = append(mem, b)
+					} else {
+						switch string(mem) {
+							case "one": { stolen_data = append(stolen_data, 0) }
+							case "two": { stolen_data = append(stolen_data, 1) }
+							default: { panic(string(mem)) }
+						}
+						mem = nil
+						seeking = false 
+					}
+					continue loop
+				}
+				switch b {
+					case '{': { seeking = true }
+					case '}': {}
+					default:  { stolen_data = append(stolen_data, b) }
+				}
+		}
+	}
 }
 
 func main() {
-	i := 3
+	i := byte('3')
 	fmt_port_print := func(which string, proto Protocol) string {
 		if len(which) == 3{ which = which + " " }
 		defer func(){i++}()
-		return fmt.Sprintf(
-			"\x1b[3%dm%s\x1b[38;2;100;100;150m {" +
-					" \x1b[0;38;2;255;165;0m%d" +
-					"\x1b[38;2;100;100;150m }\x1b[0m",
-			i,
-			which,
-			ports[proto],
-		)
+		//again, who needs fmt.Sprintf anyways?
+		return string(append(
+			append(
+				append(
+					append(
+						[]byte("\x1b[3"),
+						i,
+					),
+					append(
+						[]byte{'m'},
+						[]byte(which)...
+					)...
+				),
+				append(
+					[]byte("\x1b[38;2;100;100;150m {" +
+						" \x1b[0;38;2;255;165;0m"),
+					[]byte(strconv.Itoa(ports[proto]))...
+				)...
+			),
+			[]byte("\x1b[38;2;100;100;150m }\x1b[0m")...
+		))
+		
 	}
-	log.Printf("\tlistening on ports:")
+	log.Print("\tlistening on ports:")
 
 	ssh.Handle(func(s ssh.Session) {
-		log.Printf("connection (ssh): %s", s.RemoteAddr().String())
+		log.Print("connection (ssh):", s.RemoteAddr().String())
 		give_seizure(s)
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if is_browser(r) {
-			log.Printf("request (browser) (http): %s", r.RemoteAddr)
+			log.Print("request (browser) (http):", r.RemoteAddr)
 			w.Write(browser_page)
 		} else {
-			log.Printf("request (not browser) (http): %s", r.RemoteAddr)
+			log.Print("request (not browser) (http):", r.RemoteAddr)
 			give_seizure(w)
 		}
 	})
@@ -93,17 +136,17 @@ func main() {
 	var wg sync.WaitGroup
 
 	wg.Go(func() {
-		log.Printf("\t\t%s", fmt_port_print("http", HTTP))
+		log.Print("\t\t", fmt_port_print("http", HTTP))
 		panic(http.ListenAndServe(":"+strconv.Itoa(ports[HTTP]), nil))
 	})
 
 	wg.Go(func() {
-		log.Printf("\t\t%s", fmt_port_print("ssh", SSH))
+		log.Print("\t\t", fmt_port_print("ssh", SSH))
 		panic(ssh.ListenAndServe(":"+strconv.Itoa(ports[SSH]), nil))
 	})
 
 	wg.Go(func() {
-		log.Printf("\t\t%s", fmt_port_print("TCP", TCP))
+		log.Print("\t\t", fmt_port_print("TCP", TCP))
 		panic(tcp())
 	})
 
@@ -128,7 +171,7 @@ func tcp() error {
 		conn, e := listener.Accept()
 		if e != nil { continue }
 		go func() {
-			log.Printf("connection (tcp): %s", "")
+			log.Print("connection (tcp):", conn.RemoteAddr().String())
 			give_seizure(conn)
 		}()
 	}

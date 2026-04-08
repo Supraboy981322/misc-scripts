@@ -1,4 +1,5 @@
 const std = @import("std");
+const hlp = @import("helpers.zig");
 
 const stderr = &@constCast(&std.fs.File.stderr().writer(&.{})).interface;
 
@@ -88,14 +89,7 @@ pub fn parse_literal(alloc:std.mem.Allocator, in:[]u8) ![]u8 {
 
                 //\xXX for hex
                 'x', 'X' => block: {
-                    if (in[i..].len < 2) {
-                        stderr.print(
-                            \\invalid hex escape:
-                            \\  expected 2 valid hex chars following '\\x' but found {d}
-                            ++ "\n", .{in[i..].len}
-                        ) catch {};
-                        std.process.exit(1);
-                    }
+                    hlp.min_len(in[i..], 2);
                     defer i += 2;
                     break :block parse_hex(in[i+1..i+3]);
                 },
@@ -106,11 +100,9 @@ pub fn parse_literal(alloc:std.mem.Allocator, in:[]u8) ![]u8 {
                 //\o for octal
                 'o', 'O' => block: {
                     defer i += 2;
-                    if (in[i] == 'o') i += 1;
-                    break :block if (in[i..].len >= 3) 
-                        parse_octal(in[i..i+3])
-                    else
-                        0;
+                    i += 1;
+                    hlp.min_len(in[i..], 3);
+                    break :block parse_octal(in[i..i+3]);
                 },
 
                 //\u{...} for unicode

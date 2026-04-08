@@ -26,7 +26,9 @@ pub fn parse_hex(in:[]u8) u8 {
             'a'...'f' => b - 'a' + 10,
             'A'...'F' => b - 'A' + 10,
             else =>  {
-                stderr.print("invalid character in hex escape: {c}\n", .{b}) catch {};
+                stderr.print(
+                    "invalid character in hex escape: {c}\n",
+                .{b}) catch {};
                 std.process.exit(1);
                 unreachable;
             },

@@ -35,7 +35,9 @@ pub fn main() !void {
     }
 
     if (args.len < 2) {
-        stderr.print("not enough args, need something to print\n", .{}) catch {};
+        stderr.print(
+            "not enough args, need something to print\n",
+        .{}) catch {};
         std.process.exit(1);
     }
 

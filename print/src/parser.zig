@@ -120,7 +120,7 @@ pub fn parse_literal(alloc:std.mem.Allocator, in:[]u8) ![]u8 {
                 },
                 
                 //\0 should *ALWAYS* be a valid escape (in my opinion)
-                '0' => 0,
+                '0'...'9' => parse_num(&i, in, null).?,
 
                 //\o for octal
                 'o', 'O' => block: {

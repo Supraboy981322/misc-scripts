@@ -8,6 +8,7 @@ const stderr = &@constCast(&std.fs.File.stderr().writer(&.{})).interface;
 const FormatSpecifiers = enum {
     @"s",
     @"d",
+    @"c",
 };
 
 pub fn main() !void {

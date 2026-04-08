@@ -65,6 +65,31 @@ pub fn parse_unicode(i:*usize, in:[]u8, alloc:std.mem.Allocator) []u8 {
     };
 }
 
+pub fn parse_num(pos:*usize, in:[]u8, null_on_invalid:?bool) ?u8 {
+    var i = pos.*;
+
+    i -= 1;
+    defer i += 1;
+
+    var v:usize = 0;
+    while (in[i] >= '0' and in[i] <= '9') : (i += 1) {
+        v *= 10;
+        v += in[i] - '0';
+        if (in.len < i + 2) break;
+    }
+
+    if (null_on_invalid) |thing|
+        if (thing and v > std.math.maxInt(u8))
+            return null;
+
+    hlp.invalid_check(
+        (v > std.math.maxInt(u8)), "base-10 number escape",
+        "{d} is too large to print (must fit with an unsigned 8-bit integer)", .{v}
+    );
+
+    return @intCast(v);
+}
+
 pub fn parse_literal(alloc:std.mem.Allocator, in:[]u8) ![]u8 {
     var arr = try std.ArrayList(u8).initCapacity(alloc, 0);
     defer _ = arr.deinit(alloc);

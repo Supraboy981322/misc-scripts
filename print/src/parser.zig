@@ -67,16 +67,20 @@ pub fn parse_literal(alloc:std.mem.Allocator, in:[]u8) ![]u8 {
         if (esc) {
             esc = !esc;
             try arr.append(alloc, switch (b) {
-                'n' => '\n',
-                'r' => '\r',
-                't' => '\t',
-                'e' => '\x1b',
-                'a' => '\x07',
-                'b' => '\x08',
-                'f' => '\x0c',
-                'v' => '\x0b',
+                'n' => '\n', //newline
+                'r' => '\r', //carrage return
+                't' => '\t', //tab
 
-                'x' => block: {
+                //every modern language should have these built-in
+                //  (some of Zig's decisions are quite strange, in my opinion)
+                'e' => '\x1b', //escape character
+                'a' => '\x07', //bell character
+                'b' => '\x08', //backspace
+                'f' => '\x0c', //formfeed
+                'v' => '\x0b', //vertical tab
+
+                //\xXX for hex
+                'x', 'X' => block: {
                     if (in[i..].len < 2) {
                         stderr.print(
                             \\invalid hex escape:

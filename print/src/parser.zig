@@ -36,6 +36,8 @@ pub fn parse_unicode(i:*usize, in:[]u8, alloc:std.mem.Allocator) []u8 {
     while (j < in.len) : (j += 1)
         if (in[j] == '}') break;
 
+    if (j == in.len) j -= 1;
+
     const zig_dumb = std.fmt.allocPrint(
         alloc, "\"{s}\"", .{in[0..j+1]}
     ) catch |e| @panic(@errorName(e));

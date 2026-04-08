@@ -47,7 +47,10 @@ pub fn main() !void {
     var a_no:usize = 2;
     for (args[1]) |b| {
         if (b == '{') {
-            i = if (i > 0) 0 else 1;
+            i = if (i > 0) blk: {
+                try res.append(alloc, b);
+                break: blk 0;
+            } else 1;
         } else if (i > 0) if (b != '}') { 
             mem[@intCast(i-1)] = b;
             if (@as(usize, @intCast(i)) + 1 > mem_len) {
@@ -97,7 +100,7 @@ pub fn main() !void {
                 },
             }
             a_no += 1;
-        } else
+        } else 
             try res.append(alloc, b);
     }
 

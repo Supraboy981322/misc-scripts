@@ -88,7 +88,7 @@ pub fn main() !void {
                 },
                 .@"d" => {
                     hlp.invalid_check(
-                        !hlp.str_is_num(args[a_no]), "format string",
+                        (!hlp.str_is_num(args[a_no]) and args[a_no].len > 1), "format string",
                         "specified number, but provided arg isn't a number: {s}",
                         .{ args[a_no] }
                     );

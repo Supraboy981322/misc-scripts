@@ -106,7 +106,9 @@ pub fn parse_literal(alloc:std.mem.Allocator, in:[]u8) ![]u8 {
                         0;
                 },
 
-                'u' => {
+                //\u{...} for unicode
+                'u', 'U' => {
+                    if (b == 'U') in[i] = 'u';
                     i -= 1;
                     const foo = parse_unicode(&i, in[i..], alloc);
                     try arr.appendSlice(alloc, foo);

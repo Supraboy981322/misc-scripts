@@ -93,7 +93,11 @@ pub fn parse_literal(alloc:std.mem.Allocator, in:[]u8) ![]u8 {
                     break :block parse_hex(in[i+1..i+3]);
                 },
                 
-                '0', 'o' => block: {
+                //\0 should *ALWAYS* be a valid escape (in my opinion)
+                '0' => 0,
+
+                //\o for octal
+                'o', 'O' => block: {
                     defer i += 2;
                     if (in[i] == 'o') i += 1;
                     break :block if (in[i..].len >= 3) 

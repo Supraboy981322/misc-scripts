@@ -78,6 +78,14 @@ pub fn main() !void {
             };
             switch (specifier) {
                 .@"s" => try res.appendSlice(alloc, args[a_no]),
+                .@"c" => {
+                    hlp.invalid_check(
+                        (args[a_no].len > 1 and !hlp.str_is_num(args[a_no])), "format string",
+                        "more than one byte (can't use {{c}}): {s}", .{args[a_no]}
+                    );
+                    var j:usize = 1;
+                    try res.print(alloc, "{c}", .{parser.parse_num(&j, args[a_no], null).?});
+                },
                 .@"d" => {
                     hlp.invalid_check(
                         !hlp.str_is_num(args[a_no]), "format string",

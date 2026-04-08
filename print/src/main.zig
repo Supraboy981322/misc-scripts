@@ -62,6 +62,14 @@ pub fn main() !void {
         } else {
             defer i = 0;
             i -= 1;
+            if (args[1..].len < a_no) {
+                stderr.print(
+                    \\too many format specifiers
+                    \\  not enough args to populate all given specifiers
+                    ++ "\n", .{}
+                ) catch {};
+                std.process.exit(1);
+            }
             const specifier = std.meta.stringToEnum(
                 FormatSpecifiers, mem[0..i]
             ) orelse {

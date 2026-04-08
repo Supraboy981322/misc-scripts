@@ -5,7 +5,12 @@ const stderr = &@constCast(&std.fs.File.stderr().writer(&.{})).interface;
 pub fn parse_octal(in:[]u8) u8 {
     var v:u8 = 0;
     for (in) |b| {
-        if (b > '7' or b < '0') return 0;
+        if (b > '7' or b < '0') {
+            stderr.print(
+                "invalid character in octal escape: {c}\n",
+            .{b}) catch {};
+            std.process.exit(1);
+        }
         v *= 8;
         v += b - '0';
     }

@@ -34,12 +34,10 @@ pub fn main() !void {
         alloc.free(args);
     }
 
-    if (args.len < 2) {
-        stderr.print(
-            "not enough args, need something to print\n",
-        .{}) catch {};
-        std.process.exit(1);
-    }
+    hlp.invalid_check(
+        args.len < 2, "not enough args",
+        "need something to print", .{}
+    );
 
     var res = try std.ArrayList(u8).initCapacity(alloc, 0);
     defer _ = res.deinit(alloc);
@@ -52,53 +50,40 @@ pub fn main() !void {
             i = if (i > 0) blk: {
                 try res.append(alloc, b);
                 break: blk 0;
-            } else 1;
+            } else
+                1;
         } else if (i > 0) if (b != '}') { 
             mem[@intCast(i-1)] = b;
-            if (@as(usize, @intCast(i)) + 1 > mem_len) {
-                stderr.print(
-                    \\invalid format string
-                    \\  unknown format specifier: {s}
-                    ++ "\n", .{mem[0..i]}
-                ) catch {};
-                std.process.exit(1);
-            }
+            hlp.invalid_check(
+                @as(usize, @intCast(i)) + 1 > mem_len, "format string",
+                "unknown specifier: {s}", .{mem[0..i]}
+            );
             i += 1;
         } else {
             defer i = 0;
             i -= 1;
-            if (args[1..].len < a_no) {
-                stderr.print(
-                    \\too many format specifiers
-                    \\  not enough args to populate all given specifiers
-                    ++ "\n", .{}
-                ) catch {};
-                std.process.exit(1);
-            }
+            hlp.invalid_check(
+                (args[1..].len < a_no), "format specifiers",
+                "not enough args to populate all given specifiers", .{}
+            );
             const specifier = std.meta.stringToEnum(
                 FormatSpecifiers, mem[0..i]
             ) orelse {
-                stderr.print(
-                    \\invalid format string
-                    \\  unknown format specifier: {s}
-                    ++ "\n", .{mem[0..i]}
-                ) catch {};
-                std.process.exit(1);
+                hlp.invalid_check(
+                    true, "format string",
+                    "unknown specifier: {s}", .{mem[0..i]}
+                );
                 unreachable;
             };
             switch (specifier) {
                 .@"s" => try res.appendSlice(alloc, args[a_no]),
                 .@"d" => {
-                    if (hlp.str_is_num(args[a_no]))
-                        try res.appendSlice(alloc, args[a_no])
-                    else {
-                        stderr.print(
-                            \\invalid format string
-                            \\  specified number, but provided arg isn't a number: {s}
-                            ++ "\n", .{args[a_no]}
-                        ) catch {};
-                        std.process.exit(1);
-                    }
+                    hlp.invalid_check(
+                        !hlp.str_is_num(args[a_no]), "format string",
+                        "specified number, but provided arg isn't a number: {s}",
+                        .{ args[a_no] }
+                    );
+                    try res.appendSlice(alloc, args[a_no]);
                 },
             }
             a_no += 1;

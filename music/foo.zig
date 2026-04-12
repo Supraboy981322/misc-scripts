@@ -21,11 +21,14 @@ pub fn main() !void {
     for (args, 0..) |arg, i|
         args[i] = try alloc.dupe(u8, arg);
     defer
-        for (args[0..args.len - 1]) |a|
+        for (args) |a|
             alloc.free(a);
 
     var upnext = try pick_item(alloc);
-    while (true) {
+    defer alloc.free(upnext);
+    var i:usize = 0;
+    try stdout.print("\n\n\n", .{});
+    while (i < 10) : (i += 1) {
         alloc.free(args[7]);
         args[7] = try alloc.dupe(u8, upnext);
         alloc.free(upnext);

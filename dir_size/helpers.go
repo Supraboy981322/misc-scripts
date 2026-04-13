@@ -27,7 +27,7 @@ func (args) set_or_conflict(opt, conflict *bool, flag1, flag2 string) {
 }
 
 func err_out(e error) {
-	if !quiet || (quiet && verbosity) || total_routines.Load() < 1 {
+	if !quiet || (quiet && verbosity) {
 		fmt.Fprintf(os.Stderr, "%v\n", e)
 	}
 	whitelist := []error{

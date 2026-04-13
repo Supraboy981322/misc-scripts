@@ -29,7 +29,7 @@ var (
 func main() {
 	if !spawned_early {
 		wg.Add(1)
-		if (verbosity) { total_routines.Add(1) }
+		total_routines.Add(1)
 		go fork(&c, &wg, stuff.dir)
 	}
   wg.Wait()
@@ -64,7 +64,7 @@ func fork(c *atomic.Int64, wg *sync.WaitGroup, path string) {
 		m := i.Mode()
 		if m.IsDir() {
 			wg.Add(1)
-			if (verbosity) { total_routines.Add(1) }
+			total_routines.Add(1)
 			go fork(c, wg, path+"/"+file.Name())
 		} else if m.IsRegular() {
 			c.Add(i.Size())
@@ -86,7 +86,7 @@ func init() {
 			stuff.human_readable = was_human_readable
 			spawned_early = true
 			wg.Add(1)
-			if (verbosity) { total_routines.Add(1) }
+			total_routines.Add(1)
 			go fork(&c, &wg, a)
 			continue loop
 		}

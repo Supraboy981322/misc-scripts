@@ -26,9 +26,8 @@ pub fn main() !void {
 
     var upnext = try pick_item(alloc);
     defer alloc.free(upnext);
-    var i:usize = 0;
     try stdout.print("\n\n\n", .{});
-    while (i < 10) : (i += 1) {
+    while (true) {
         alloc.free(args[7]);
         args[7] = try alloc.dupe(u8, upnext);
         alloc.free(upnext);

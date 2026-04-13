@@ -83,8 +83,18 @@ pub fn main() !void {
                         (args[a_no].len > 1 and !hlp.str_is_num(args[a_no])), "format string",
                         "more than one byte (can't use {{c}}): {s}", .{args[a_no]}
                     );
-                    var j:usize = 1;
-                    try res.print(alloc, "{c}", .{parser.parse_num(&j, args[a_no], null).?});
+                    var char:u8 = undefined;
+                    if (args[a_no].len == 1) {
+                        if (std.ascii.isAlphabetic(args[a_no][0]))
+                            char = args[a_no][0];
+                    } else {
+                        char = std.fmt.parseInt(u8, args[a_no], 10) catch |e| {
+                            try stderr.print("{t}: |{s}|", .{e, args[a_no]});
+                            std.process.abort();
+                            unreachable;
+                        };
+                    }
+                    try res.print(alloc, "{c}", .{char});
                 },
                 .@"d" => {
                     hlp.invalid_check(

@@ -102,9 +102,6 @@ pub fn pick_item(io:std.Io, alloc:std.mem.Allocator) ![]const u8 {
 }
 
 pub fn keys(io:std.Io, stdout:*std.Io.Writer) !void {
-    //open term alt buf
-    try stdout.print("\x1b[?1049h", .{});
-    try stdout.flush();
 
     //get stdin (and the file discriptor)
     var buf:[1]u8 = undefined;

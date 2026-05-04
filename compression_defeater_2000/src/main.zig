@@ -1,12 +1,13 @@
 const std = @import("std");
 
-var stdout_buf:[1024]u8 = undefined;
-var stdout_wr = std.fs.File.stdout().writer(&stdout_buf);
-const stdout = &stdout_wr.interface;
-
 var quit:bool = false;
 
-pub fn main() !void {
+pub fn main(init:std.process.Init) !void {
+
+    var stdout_buf:[1024]u8 = undefined;
+    var stdout_wr = std.Io.File.stdout().writer(init.io, &stdout_buf);
+    var stdout = &stdout_wr.interface;
+
     //create a sigaction struct
     var sig_act = std.posix.Sigaction{
         .handler = .{ .handler = sig_handler },
@@ -18,7 +19,7 @@ pub fn main() !void {
     std.posix.sigaction(std.c.SIG.TERM, &sig_act, null);
 
     //stdin term file discriptor
-    const fd = std.fs.File.stdin().handle;
+    const fd = std.Io.File.stdin().handle;
 
     //prep terminal
     const termios = try std.posix.tcgetattr(fd);
@@ -27,14 +28,14 @@ pub fn main() !void {
     raw.lflag.ICANON = false;
     raw.lflag.ECHO = false;
     try std.posix.tcsetattr(fd, .FLUSH, raw);
-    defer cleanup(og_term_state);
+    defer cleanup(og_term_state, stdout);
 
     //spawn a thread for listening to key presses
-    const t = try std.Thread.spawn(.{}, keys, .{});
+    const t = try std.Thread.spawn(.{}, keys, .{init.io, stdout});
     t.detach();
 
     //pseudo random 
-    const rand = std.crypto.random;
+    const rand = &(std.Random.IoSource{ .io = init.io }).interface();
     while (!quit) {
         //random ascii char
         const c = rand.intRangeAtMost(u8, '0', '~');
@@ -52,14 +53,14 @@ pub fn main() !void {
     }
 }
 
-pub fn keys() !void { 
+pub fn keys(io:std.Io, stdout:*std.Io.Writer) !void { 
     //open term alt buf
     try stdout.print("\x1b[?1049h", .{});
     try stdout.flush();
 
     //get stdin (and the file discriptor)
     var buf:[1]u8 = undefined;
-    var stdin_re = std.fs.File.stdin().reader(&buf);
+    var stdin_re = std.Io.File.stdin().reader(io, &buf);
     var stdin = &stdin_re.interface;
 
     //infinitely listen to keypresses
@@ -71,8 +72,8 @@ pub fn keys() !void {
     }
 }
 
-fn cleanup(og: std.posix.termios) void {
-    const fd = std.fs.File.stdin().handle;
+fn cleanup(og: std.posix.termios, stdout:*std.Io.Writer) void {
+    const fd = std.Io.File.stdin().handle;
 
     //reset term state
     std.posix.tcsetattr(fd, .FLUSH, og) catch {};
@@ -84,6 +85,6 @@ fn cleanup(og: std.posix.termios) void {
     std.process.exit(0);
 }
 
-fn sig_handler(_:i32) callconv(.c) void {
+fn sig_handler(_:std.posix.system.SIG) callconv(.c) void {
     quit = true;
 }

@@ -1,5 +1,8 @@
 const std = @import("std");
 
+var quit:bool = false;
+var ffplay:std.posix.pid_t = undefined;
+
 pub fn main(init:std.process.Init) !void {
     const alloc = init.gpa;
 
@@ -28,7 +31,34 @@ pub fn main(init:std.process.Init) !void {
     defer alloc.free(upnext);
     try stdout.print("\n\n\n", .{});
     try stdout.flush();
-    while (true) {
+
+    //create a sigaction struct
+    var sig_act = std.posix.Sigaction{
+        .handler = .{ .handler = sig_handler },
+        .mask = std.posix.sigemptyset(),
+        .flags = 0,
+    };
+    //register signals
+    std.posix.sigaction(std.c.SIG.INT, &sig_act, null);
+    std.posix.sigaction(std.c.SIG.TERM, &sig_act, null);
+
+    //stdin term file discriptor
+    const fd = std.Io.File.stdin().handle;
+
+    //prep terminal
+    const termios = try std.posix.tcgetattr(fd);
+    const og_term_state = termios; //save initial state
+    var raw = og_term_state;
+    raw.lflag.ICANON = false;
+    raw.lflag.ECHO = false;
+    try std.posix.tcsetattr(fd, .FLUSH, raw);
+    defer cleanup(og_term_state, stdout);
+
+
+    var key_fut = std.Io.async(init.io, keys, .{ init.io, stdout });
+    defer _ = key_fut.cancel(init.io) catch |e| @panic(@errorName(e));
+
+    while (!quit) {
         alloc.free(args[7]);
         args[7] = try alloc.dupe(u8, upnext);
         alloc.free(upnext);
@@ -40,13 +70,15 @@ pub fn main(init:std.process.Init) !void {
             .{ args[7], upnext }
         );
         try stdout.flush();
-        var child = try std.process.spawn(init.io, .{
+        var ffplay_proc = try std.process.spawn(init.io, .{
             .argv = &args,
             .stdout = .pipe,
             .stderr = .pipe,
             .stdin = .pipe,
         });
-        _ = try child.wait(init.io);
+        ffplay = ffplay_proc.id.?;
+        _ = ffplay_proc.wait(init.io) catch |e|
+            if (e != error.Canceled) @panic(@errorName(e));
     }
 }
 
@@ -67,4 +99,44 @@ pub fn pick_item(io:std.Io, alloc:std.mem.Allocator) ![]const u8 {
     const idx = random.uintAtMost(usize, arr.items.len - 1);
     const picked = arr.items[idx];
     return alloc.dupe(u8, picked);
+}
+
+pub fn keys(io:std.Io, stdout:*std.Io.Writer) !void {
+    //open term alt buf
+    try stdout.print("\x1b[?1049h", .{});
+    try stdout.flush();
+
+    //get stdin (and the file discriptor)
+    var buf:[1]u8 = undefined;
+    var stdin_re = std.Io.File.stdin().reader(io, &buf);
+    var stdin = &stdin_re.interface;
+
+    //infinitely listen to keypresses
+    while (!quit) {
+        switch (try stdin.takeByte()) {
+            'q' => {
+                for (0..2) |_|
+                    try stdout.print("\x1b[A\x1b[2K\r", .{});
+                try stdout.print("exiting...\n", .{});
+                try stdout.flush();
+                quit = true;
+                try std.posix.kill(ffplay, .QUIT);
+                return;
+            },
+            else => {}, //ignore everything else
+        }
+    }
+}
+
+fn cleanup(og: std.posix.termios, _:*std.Io.Writer) void {
+    const fd = std.Io.File.stdin().handle;
+
+    //reset term state
+    std.posix.tcsetattr(fd, .FLUSH, og) catch {};
+
+    std.process.exit(0);
+}
+
+fn sig_handler(_:std.posix.system.SIG) callconv(.c) void {
+    quit = true;
 }

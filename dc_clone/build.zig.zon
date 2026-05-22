@@ -1,0 +1,6 @@
+.{
+    .name = .dc_clone,
+    .version = "0.16.0",
+    .paths = .{""},
+    .fingerprint = 0x5c4a87b7565a9a60,
+}

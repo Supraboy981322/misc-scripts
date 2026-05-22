@@ -11,6 +11,7 @@ const Cmd = enum(u32) {
     sqrt,
     add, sub,
     div, mult,
+    discard,
 
     // TODO:
     pow,
@@ -84,6 +85,7 @@ fn do_cmd(cmd:Cmd) bool {
             push(.{ .num = v });
         },
         .sqrt => push(.{ .num = sqrt(pop().num) }),
+        .discard => _ = pop(),
         .print => {
             var buf:[10]u8 = undefined;
             var b:[]u8 = &buf;
@@ -151,6 +153,7 @@ fn mk_cmd(str:[]u8) ?Cmd {
     if (str_eql_any(str, &.{ "*", "mult" })) return .mult;
     if (str_eql_any(str, &.{ "/", "div" })) return .div;
     if (str_eql_any(str, &.{ "v", "sqrt" })) return .sqrt;
+    if (str_eql_any(str, &.{ "d", "discard" })) return .discard;
     if (str_eql_any(str, &.{ "p", "print" })) return .print;
     if (str_eql_any(str, &.{ "q", "exit", "quit" })) return .exit;
     return null;

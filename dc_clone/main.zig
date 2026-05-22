@@ -16,7 +16,7 @@ const Slot = union(enum(u1)) {
     cmd:Cmd,
 };
 
-var stack = [_]Slot{undefined} ** 256;
+var stack = [_]Slot{.{ .num = 0 }} ** 256;
 var top:[*]Slot = undefined;
 inline fn push(s:Slot) void {
     top[0] = s;

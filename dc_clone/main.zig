@@ -77,6 +77,7 @@ fn do_cmd(cmd:Cmd) bool {
             };
             push(.{ .num = v });
         },
+        .sqrt => push(.{ .num = sqrt(pop().num) }),
         .print => {
             var buf:[10]u8 = undefined;
             var b:[]u8 = &buf;
@@ -100,6 +101,9 @@ fn parse_num(str:[]u8) i32 {
     return res;
 }
 
+inline fn sqrt(v:i32) i32 {
+    return @intFromFloat(@sqrt(@as(f32, @floatFromInt(v))));
+}
 fn dig(v:u8) [2]u8 {
     return .{ @intCast('0' + v / 10), @intCast('0' + v % 10) };
 }
@@ -140,6 +144,7 @@ fn mk_cmd(str:[]u8) ?Cmd {
     if (str_eql_any(str, &.{ "-", "sub" })) return .sub;
     if (str_eql_any(str, &.{ "*", "mult" })) return .mult;
     if (str_eql_any(str, &.{ "/", "div" })) return .div;
+    if (str_eql_any(str, &.{ "v", "sqrt" })) return .sqrt;
     if (str_eql_any(str, &.{ "p", "print" })) return .print;
     if (str_eql_any(str, &.{ "q", "exit", "quit" })) return .exit;
     return null;

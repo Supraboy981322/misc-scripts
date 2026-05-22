@@ -3,12 +3,18 @@ const read = @import("std").posix.system.read;
 const errno = @import("std").posix.system.errno;
 const fd_t = @import("std").posix.system.fd_t;
 
+// TODO: refactor for f34
+
 const Cmd = enum(u32) {
     exit,
     print,
     sqrt,
     add, sub,
     div, mult,
+
+    // TODO:
+    pow,
+    root,
 };
 
 const Slot = union(enum(u1)) {

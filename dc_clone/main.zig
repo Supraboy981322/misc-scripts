@@ -5,7 +5,7 @@ const fd_t = @import("std").posix.system.fd_t;
 
 // TODO: refactor for f34
 
-const Cmd = enum(u32) {
+const Cmd = enum(u8) {
     exit,
     print,
     sqrt,

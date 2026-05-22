@@ -139,7 +139,7 @@ inline fn is_space(b:u8) bool {
     return b == ' ' or (b >= '\t' and b <= '\r');
 }
 fn is_num(str:[]u8) bool {
-    const s = if (str[0] == '-') str[1..] else str;
+    const s = if (str[0] == '-' and str.len > 1) str[1..] else str;
     for (s) |b| if (b < '0' or b > '9') return false;
     return true;
 }

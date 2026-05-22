@@ -37,7 +37,7 @@ fn fprint(fd:fd_t, msg:[]const u8) void {
     if (errno(ret) != .SUCCESS) @panic("failed to write to stdout");
 }
 
-pub fn main() !u8 {
+pub fn main() u8 {
 
     top = (&stack).ptr;
     var buf:[1024]u8 = undefined;

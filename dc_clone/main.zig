@@ -50,6 +50,7 @@ pub fn main() !u8 {
         var line = buf[0..n];
 
         while (shift(&line)) |word| {
+            if (word.len == 0) continue;
             if (is_num(word))
                 push(parse_num(word))
             else if (mk_cmd(word)) |cmd| {

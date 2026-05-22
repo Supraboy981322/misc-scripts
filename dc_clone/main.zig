@@ -89,7 +89,7 @@ fn do_cmd(cmd:Cmd) bool {
         .print => {
             var buf:[10]u8 = undefined;
             var b:[]u8 = &buf;
-            to_str(&b, pop().num);
+            to_str(&b, (top - 1)[0].num);
             print(b);
         },
         .exit => return true,

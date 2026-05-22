@@ -18,18 +18,13 @@ const Cmd = enum(u32) {
     root,
 };
 
-const Slot = union(enum(u1)) {
-    num:i32,
-    cmd:Cmd,
-};
-
-var stack = [_]Slot{.{ .num = 0 }} ** 256;
-var top:[*]Slot = undefined;
-inline fn push(s:Slot) void {
+var stack = [_]i32{0} ** 256;
+var top:[*]i32 = undefined;
+inline fn push(s:i32) void {
     top[0] = s;
     top += 1;
 }
-inline fn pop() Slot {
+inline fn pop() i32 {
     top -= 1;
     return top[0];
 }
@@ -56,7 +51,7 @@ pub fn main() !u8 {
 
         while (shift(&line)) |word| {
             if (is_num(word))
-                push(.{ .num = parse_num(word) })
+                push(parse_num(word))
             else if (mk_cmd(word)) |cmd| {
                 if (do_cmd(cmd)) return 0;
             } else {
@@ -73,8 +68,8 @@ pub fn main() !u8 {
 fn do_cmd(cmd:Cmd) bool {
     switch (cmd) {
         inline .add, .div, .sub, .mult => |w| {
-            const two = pop().num;
-            const one = pop().num;
+            const two = pop();
+            const one = pop();
             const v = switch (comptime w) {
                 .add => one + two,
                 .sub => one - two,
@@ -82,14 +77,14 @@ fn do_cmd(cmd:Cmd) bool {
                 .mult => one * two,
                 else => unreachable,
             };
-            push(.{ .num = v });
+            push(v);
         },
-        .sqrt => push(.{ .num = sqrt(pop().num) }),
+        .sqrt => push(sqrt(pop())),
         .discard => _ = pop(),
         .print => {
             var buf:[10]u8 = undefined;
             var b:[]u8 = &buf;
-            to_str(&b, (top - 1)[0].num);
+            to_str(&b, (top - 1)[0]);
             print(b);
         },
         .exit => return true,

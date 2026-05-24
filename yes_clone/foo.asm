@@ -1,6 +1,7 @@
 section .data
   argc dd 0 ; NOTE: 4 bytes wide
 
+  default_txt db "yes", 10
   not_enough_args db "not enough args", 10
   not_enough_args_len equ $ - not_enough_args
 
@@ -10,8 +11,14 @@ section .text
 _start:
 
   mov rdi, [rsp] ;argc
-  cmp rdi, 2     ;if argc -lt 2 then need_args
-  jl need_args
+  cmp rdi, 1     ;if argc -lt 2 then need_args
+  jg read_arg
+  
+  mov rdx, 4
+  mov rsi, default_txt
+  jmp continue
+
+read_arg:
 
   mov rsi, [rsp + 16] ;argv[1]
   mov rdx, 0          ;length of argv[1]

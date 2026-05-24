@@ -13,6 +13,7 @@ _start:
   cmp rdi, 1     ;if argc -lt 2 then use default_txt
   jg read_arg
   
+  ;load default string into registers for write syscall
   mov rdx, default_txt_len
   mov rsi, default_txt
   jmp continue

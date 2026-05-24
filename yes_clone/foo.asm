@@ -24,14 +24,19 @@ _start:
   counted:
   mov rdx, rdi
 
+  mov rsi, [rsp + 16]
+  mov byte [rsi + rdx], 10
+  add rdx, 1
+
   ;add rdi, 48 ;
   ;mov [argc], rdi
 
-  mov rax, 1 ;write
-  mov rdi, 1 ;stdout
-  mov rsi, [rsp + 16]
-  ;mov rdx, 3
-  syscall
+  continue:
+    mov rax, 1 ;write
+    mov rdi, 1 ;stdout
+    ;mov rdx, 3
+    syscall
+  jmp continue
 
   mov rdi, 0
   jmp end

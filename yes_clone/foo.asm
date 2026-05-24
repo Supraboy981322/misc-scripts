@@ -11,7 +11,7 @@ _start:
 
   mov rdi, [rsp] ;argc
   cmp rdi, 2
-  jl bad
+  jl need_args
 
   mov rsi, [rsp + 16]
   mov rdi, 0
@@ -28,20 +28,17 @@ _start:
   mov byte [rsi + rdx], 10
   add rdx, 1
 
-  ;add rdi, 48 ;
-  ;mov [argc], rdi
-
   continue:
     mov rax, 1 ;write
     mov rdi, 1 ;stdout
-    ;mov rdx, 3
     syscall
   jmp continue
 
   mov rdi, 0
-  jmp end
+  jmp exit
 
-bad:
+
+need_args:
   mov rax, 1
   mov rdi, 2
   mov rsi, not_enough_args
@@ -49,9 +46,9 @@ bad:
   syscall
 
   mov rdi, 1
-  jmp end
+  jmp exit
 
-end:
-  
+
+exit:
   mov rax, 60
   syscall

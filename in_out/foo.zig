@@ -24,6 +24,7 @@ pub fn main(init:std.process.Init) !u8 {
 
     if (stuff.colorize) |color| while (true) {
         try stdout.interface.print("\x1b[38;2;{d};{d};{d}m", .{color.r, color.g, color.b});
+        try stdout.interface.flush();
         _ = try stdin.interface.stream(&stdout.interface, .limited(1));
         try stdout.interface.writeAll("\x1b[0m");
     } else {} else

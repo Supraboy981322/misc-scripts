@@ -21,12 +21,19 @@ pub fn main(init:std.process.Init) !u8 {
 
     var stdout_buf:[1]u8 = undefined;
     var stdout = std.Io.File.stdout().writer(init.io, &stdout_buf);
+
     var stdin_buf:[1]u8 = undefined;
     var stdin = std.Io.File.stdin().reader(init.io, &stdin_buf);
+
     if (!stuff.colorize) while (true) {
         _ = try stdin.interface.stream(&stdout.interface, .unlimited);
     };
-    { @panic("TODO: stream colorized"); }
+
+    while (true) {
+        try stdout.interface.writeAll("\x1b[33m");
+        _ = try stdin.interface.stream(&stdout.interface, .limited(1));
+        try stdout.interface.writeAll("\x1b[0m");
+    }
 
     return 0;
 }
@@ -35,6 +42,7 @@ fn do_args(init:std.process.Init) !Setup {
     var itr = try init.minimal.args.iterateAllocator(init.arena.allocator());
     defer _ = init.arena.deinit();
     _ = itr.skip();
+
     var res:Setup = .{};
     while (itr.next()) |arg| {
         const match = std.meta.stringToEnum(

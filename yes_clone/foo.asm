@@ -2,8 +2,7 @@ section .data
   argc dd 0 ; NOTE: 4 bytes wide
 
   default_txt db "yes", 10
-  not_enough_args db "not enough args", 10
-  not_enough_args_len equ $ - not_enough_args
+  default_txt_len equ $ - default_txt
 
 section .text
   global _start
@@ -11,10 +10,10 @@ section .text
 _start:
 
   mov rdi, [rsp] ;argc
-  cmp rdi, 1     ;if argc -lt 2 then need_args
+  cmp rdi, 1     ;if argc -lt 2 then use default_txt
   jg read_arg
   
-  mov rdx, 4
+  mov rdx, default_txt_len
   mov rsi, default_txt
   jmp continue
 
@@ -41,19 +40,6 @@ read_arg:
 
   mov rdi, 0 ;set exit code
   jmp exit   ;jmp to exit
-
-
-;prints "not enough args" (followed by newline) then exits with code '1'
-need_args:
-  mov rax, 1
-  mov rdi, 2 ;stderr
-  mov rsi, not_enough_args
-  mov rdx, not_enough_args_len
-  syscall
-
-  mov rdi, 1
-  jmp exit
-
 
 exit:
   mov rax, 60 ;exit

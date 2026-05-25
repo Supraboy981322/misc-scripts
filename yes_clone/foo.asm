@@ -1,7 +1,7 @@
 section .data
   argc dd 0 ; NOTE: 4 bytes wide
 
-  default_txt db "yes", 10
+  default_txt db "y", 10
   default_txt_len equ $ - default_txt
 
 section .text

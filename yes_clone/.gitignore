@@ -2,3 +2,4 @@ a.out
 *.c
 *.o
 yes_clone
+result/

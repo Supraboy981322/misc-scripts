@@ -6,11 +6,13 @@
     pkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, nixpkgs, zig_overlay, ... } @ inputs: 
+  outputs = { self, nixpkgs, ... } @ inputs: 
     let
       # system version (you may need to change this)
       system = "x86_64-linux";
-      pkgs = import nixpkgs { };
+      pkgs = import nixpkgs {
+        inherit system;
+      };
     in {
       # Nix shell
       devShells.${system}.default = pkgs.mkShell {

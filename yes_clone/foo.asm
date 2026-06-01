@@ -1,11 +1,10 @@
-section .data
-  argc dd 0 ; NOTE: 4 bytes wide
+format ELF64
 
+section '.data' writeable
   default_txt db "y", 10
-  default_txt_len equ $ - default_txt
 
-section .text
-  global _start
+section '.text' executable
+  public _start
 
 _start:
 
@@ -14,7 +13,7 @@ _start:
   jg read_arg
   
   ;load default string into registers for write syscall
-  mov rdx, default_txt_len
+  mov rdx, 2
   mov rsi, default_txt
   jmp continue
 

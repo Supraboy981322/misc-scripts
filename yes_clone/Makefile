@@ -1,3 +1,3 @@
 main:
 	fasm foo.asm
-	ld foo.o
+	ld foo.o -o yes_clone

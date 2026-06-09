@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+declare user="guest"
+declare uid=$(id -u)
+declare gid=$(id -g)
+
+
+if [[ $# -lt 2 ]]; then
+  cat <<EOF
+not enough args
+  usage: smb [options] (local path) (remote path)
+EOF
+  exit 1
+fi
+
+declare local_path="$2"
+declare remote_path="$1"
+
+echo -e "mounting \e[33m${remote_path}\e[0m to \e[34m${local_path}\e[0m"
+
+mount \
+  -t cifs \
+  -o "${user}",uid=${uid},gid=${gid} \
+  "${remote_path}" \
+  "${local_path}"

@@ -29,6 +29,7 @@ fn pop() ?int {
 fn getReg(reader:*std.Io.Reader) !*int {
     var buf:[2]u8 = .{0, 0};
     for (&buf) |*b| {
+        while (isWhitespace(try reader.peekByte())) reader.toss(1);
         b.* = try reader.takeByte();
     }
     if (buf[0] != 'r' or !isHex(buf[1]))
@@ -42,7 +43,8 @@ fn getReg(reader:*std.Io.Reader) !*int {
 }
 
 pub fn main(init:std.process.Init) !u8 {
-    const alloc = init.gpa;
+    const alloc = init.arena.allocator();
+    defer _ = init.arena.deinit();
     io = init.io;
 
     for (&registers) |*reg| reg.* = try .init(alloc);
@@ -83,6 +85,19 @@ pub fn main(init:std.process.Init) !u8 {
                 reg.swap(&num);
             },
 
+            't' => {
+                var n = pop() orelse {
+                    try print(.err, "stack empty");
+                    continue;
+                };
+                n.deinit();
+            },
+
+            'g' => {
+                const reg = try getReg(reader);
+                push(reg.*);
+            },
+
             '+' => {
                 var one = pop() orelse {
                     try print(.err, "stack empty");
@@ -98,13 +113,52 @@ pub fn main(init:std.process.Init) !u8 {
                 try new.add(&one, &two);
                 push(new);
             },
-
-            't' => {
-                var n = pop() orelse {
+            '-' => {
+                var one = pop() orelse {
                     try print(.err, "stack empty");
                     continue;
                 };
-                n.deinit();
+                defer one.deinit();
+                var two = pop() orelse {
+                    try print(.err, "stack empty");
+                    continue;
+                };
+                defer two.deinit();
+                var new:int = try .init(alloc);
+                try new.sub(&one, &two);
+                push(new);
+            },
+            '*' => {
+                var one = pop() orelse {
+                    try print(.err, "stack empty");
+                    continue;
+                };
+                defer one.deinit();
+                var two = pop() orelse {
+                    try print(.err, "stack empty");
+                    continue;
+                };
+                defer two.deinit();
+                var new:int = try .init(alloc);
+                try new.mul(&one, &two);
+                push(new);
+            },
+            '/' => {
+                var one = pop() orelse {
+                    try print(.err, "stack empty");
+                    continue;
+                };
+                defer one.deinit();
+                var two = pop() orelse {
+                    try print(.err, "stack empty");
+                    continue;
+                };
+                defer two.deinit();
+                var new:int = try .init(alloc);
+                var rem:int = try .init(alloc);
+                defer rem.deinit();
+                try new.divTrunc(&rem, &one, &two);
+                push(new);
             },
 
             '0'...'9' => |n| {
@@ -118,10 +172,7 @@ pub fn main(init:std.process.Init) !u8 {
                 push(num);
             },
 
-            else => {
-                try print(.err, "unknown op");
-                break;
-            },
+            else => try print(.err, "unknown op"),
         }
     } else |err| return err;
 

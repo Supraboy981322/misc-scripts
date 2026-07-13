@@ -27,6 +27,25 @@ fn pop() ?int {
     stack_top -= 1;
     return stack_top[0];
 }
+const Pair = struct {
+    one:int,
+    two:int,
+    pub fn deinit(self:*Pair) void {
+        self.one.deinit();
+        self.two.deinit();
+    }
+    pub fn init(one:int, two:int) Pair {
+        return .{ .one = one, .two = two };
+    }
+};
+fn pop2() ?Pair {
+    var one = pop() orelse return null;
+    const two = pop() orelse {
+        one.deinit();
+        return null;
+    };
+    return .init(one, two);
+}
 fn getReg(reader:*std.Io.Reader) !*int {
     var buf:[2]u8 = .{0, 0};
     for (&buf) |*b| {
@@ -111,80 +130,65 @@ pub fn main(init:std.process.Init) !u8 {
             'g' => push((try getReg(reader)).*),
 
             '=' => {
-                var one = pop() orelse {
+                var pair = pop2() orelse {
                     try print(.err, "stack empty");
                     continue;
                 };
-                defer one.deinit();
-                var two = pop() orelse {
+                defer pair.deinit();
+                const new:int = try .initSet(alloc, @intFromBool(pair.one.eql(pair.two)));
+                push(new);
+            },
+
+            '^' => {
+                var pair = pop2() orelse {
                     try print(.err, "stack empty");
                     continue;
                 };
-                defer two.deinit();
-                const new:int = try .initSet(alloc, @intFromBool(one.eql(two)));
+                defer pair.deinit();
+                const new:int = try .initSet(alloc, @intFromBool(pair.one.eql(pair.two)));
                 push(new);
             },
 
             '+' => {
-                var one = pop() orelse {
+                var pair = pop2() orelse {
                     try print(.err, "stack empty");
                     continue;
                 };
-                defer one.deinit();
-                var two = pop() orelse {
-                    try print(.err, "stack empty");
-                    continue;
-                };
-                defer two.deinit();
+                defer pair.deinit();
                 var new:int = try .init(alloc);
-                try new.add(&one, &two);
+                try new.add(&pair.one, &pair.two);
                 push(new);
             },
             '-' => {
-                var one = pop() orelse {
+                var pair = pop2() orelse {
                     try print(.err, "stack empty");
                     continue;
                 };
-                defer one.deinit();
-                var two = pop() orelse {
-                    try print(.err, "stack empty");
-                    continue;
-                };
-                defer two.deinit();
+                defer pair.deinit();
                 var new:int = try .init(alloc);
-                try new.sub(&one, &two);
+                try new.sub(&pair.one, &pair.two);
                 push(new);
             },
             '*' => {
-                var one = pop() orelse {
+                var pair = pop2() orelse {
                     try print(.err, "stack empty");
                     continue;
                 };
-                defer one.deinit();
-                var two = pop() orelse {
-                    try print(.err, "stack empty");
-                    continue;
-                };
-                defer two.deinit();
+                defer pair.deinit();
                 var new:int = try .init(alloc);
-                try new.mul(&one, &two);
+                try new.mul(&pair.one, &pair.two);
                 push(new);
             },
             '/' => {
-                var one = pop() orelse {
+                var pair = pop2() orelse {
                     try print(.err, "stack empty");
                     continue;
                 };
-                defer one.deinit();
-                var two = pop() orelse {
-                    try print(.err, "stack empty");
-                    continue;
-                };
-                defer two.deinit();
+                defer pair.deinit();
                 var new:int = try .init(alloc);
                 var rem:int = try .init(alloc);
                 defer rem.deinit();
-                try new.divTrunc(&rem, &one, &two);
+                try new.divTrunc(&rem, &pair.one, &pair.two);
                 push(new);
             },
 

@@ -4,6 +4,7 @@ const isDigit = std.ascii.isDigit;
 const isWhitespace = std.ascii.isWhitespace;
 const isHex = std.ascii.isHex;
 const exit = std.process.exit;
+const abort = std.process.abort;
 const int = std.math.big.int.Managed;
 
 var io:std.Io = undefined;
@@ -42,17 +43,25 @@ fn getReg(reader:*std.Io.Reader) !*int {
     return @ptrCast(registers[num..].ptr);
 }
 
+fn print(where:enum{out, err}, str:[]const u8) !void {
+    var out_buf:[1024]u8 = undefined;
+    var wr = switch (where) {
+        .out => std.Io.File.stdout().writer(io, &out_buf),
+        .err => std.Io.File.stderr().writer(io, &out_buf),
+    };
+    try wr.interface.print("{s}\n", .{str});
+    try wr.interface.flush();
+}
+
 pub fn main(init:std.process.Init) !u8 {
+    errdefer abort();
+
     const alloc = init.arena.allocator();
     defer _ = init.arena.deinit();
     io = init.io;
 
     for (&registers) |*reg| reg.* = try .init(alloc);
     for (&stack) |*i| i.* = try .init(alloc);
-    defer {
-        for (&registers) |*reg| reg.deinit();
-        for (&stack) |*i| i.deinit();
-    }
 
     var in_buf:[1024]u8 = undefined;
     var stdin = std.Io.File.stdin().reader(init.io, &in_buf);
@@ -62,6 +71,7 @@ pub fn main(init:std.process.Init) !u8 {
         errdefer |e| {
             print(.err, @errorName(e)) catch {};
             exit(1);
+            unreachable;
         }
 
         if (isWhitespace(b)) continue;
@@ -99,6 +109,21 @@ pub fn main(init:std.process.Init) !u8 {
             },
 
             'g' => push((try getReg(reader)).*),
+
+            '=' => {
+                var one = pop() orelse {
+                    try print(.err, "stack empty");
+                    continue;
+                };
+                defer one.deinit();
+                var two = pop() orelse {
+                    try print(.err, "stack empty");
+                    continue;
+                };
+                defer two.deinit();
+                const new:int = try .initSet(alloc, @intFromBool(one.eql(two)));
+                push(new);
+            },
 
             '+' => {
                 var one = pop() orelse {
@@ -179,14 +204,4 @@ pub fn main(init:std.process.Init) !u8 {
     } else |err| return err;
 
     return 0;
-}
-
-fn print(where:enum{out, err}, str:[]const u8) !void {
-    var out_buf:[1024]u8 = undefined;
-    var wr = switch (where) {
-        .out => std.Io.File.stdout().writer(io, &out_buf),
-        .err => std.Io.File.stderr().writer(io, &out_buf),
-    };
-    try wr.interface.print("{s}\n", .{str});
-    try wr.interface.flush();
 }

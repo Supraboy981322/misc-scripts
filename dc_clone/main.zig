@@ -39,9 +39,9 @@ const Pair = struct {
     }
 };
 fn pop2() ?Pair {
-    var one = pop() orelse return null;
-    const two = pop() orelse {
-        one.deinit();
+    var two = pop() orelse return null;
+    const one = pop() orelse {
+        two.deinit();
         return null;
     };
     return .init(one, two);
@@ -145,7 +145,57 @@ pub fn main(init:std.process.Init) !u8 {
                     continue;
                 };
                 defer pair.deinit();
-                const new:int = try .initSet(alloc, @intFromBool(pair.one.eql(pair.two)));
+                var new:int = try .initSet(alloc, 0);
+                try new.bitXor(&pair.one, &pair.two);
+                push(new);
+            },
+            '|' => {
+                var pair = pop2() orelse {
+                    try print(.err, "stack empty");
+                    continue;
+                };
+                defer pair.deinit();
+                var new:int = try .initSet(alloc, 0);
+                try new.bitOr(&pair.one, &pair.two);
+                push(new);
+            },
+            '&' => {
+                var pair = pop2() orelse {
+                    try print(.err, "stack empty");
+                    continue;
+                };
+                defer pair.deinit();
+                var new:int = try .initSet(alloc, 0);
+                try new.bitAnd(&pair.one, &pair.two);
+                push(new);
+            },
+
+            'R' => {
+                var pair = pop2() orelse {
+                    try print(.err, "stack empty");
+                    continue;
+                };
+                defer pair.deinit();
+                const amnt = pair.two.toInt(usize) catch {
+                    try print(.err, "integer overflow");
+                    continue;
+                };
+                var new:int = try .initSet(alloc, 0);
+                try new.shiftRight(&pair.one, amnt);
+                push(new);
+            },
+            'L' => {
+                var pair = pop2() orelse {
+                    try print(.err, "stack empty");
+                    continue;
+                };
+                defer pair.deinit();
+                var new:int = try .initSet(alloc, 0);
+                const amnt = pair.two.toInt(usize) catch {
+                    try print(.err, "integer overflow");
+                    continue;
+                };
+                try new.shiftLeft(&pair.one, amnt);
                 push(new);
             },
 

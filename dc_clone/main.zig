@@ -59,6 +59,11 @@ pub fn main(init:std.process.Init) !u8 {
     const reader = &stdin.interface;
 
     while (reader.takeByte()) |b| {
+        errdefer |e| {
+            print(.err, @errorName(e)) catch {};
+            exit(1);
+        }
+
         if (isWhitespace(b)) continue;
 
         switch (b) {
@@ -93,10 +98,7 @@ pub fn main(init:std.process.Init) !u8 {
                 n.deinit();
             },
 
-            'g' => {
-                const reg = try getReg(reader);
-                push(reg.*);
-            },
+            'g' => push((try getReg(reader)).*),
 
             '+' => {
                 var one = pop() orelse {

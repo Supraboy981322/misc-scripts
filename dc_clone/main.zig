@@ -139,7 +139,7 @@ pub fn main(init:std.process.Init) !u8 {
                 push(new);
             },
 
-            '^' => {
+            'x' => {
                 var pair = pop2() orelse {
                     try print(.err, "stack empty");
                     continue;
@@ -190,12 +190,27 @@ pub fn main(init:std.process.Init) !u8 {
                     continue;
                 };
                 defer pair.deinit();
-                var new:int = try .initSet(alloc, 0);
                 const amnt = pair.two.toInt(usize) catch {
                     try print(.err, "integer overflow");
                     continue;
                 };
+                var new:int = try .initSet(alloc, 0);
                 try new.shiftLeft(&pair.one, amnt);
+                push(new);
+            },
+
+            '^' => {
+                var pair = pop2() orelse {
+                    try print(.err, "stack empty");
+                    continue;
+                };
+                defer pair.deinit();
+                const pow = pair.two.toInt(u32) catch {
+                    try print(.err, "integer overflow");
+                    continue;
+                };
+                var new:int = try .initSet(alloc, 0);
+                try new.pow(&pair.one, pow);
                 push(new);
             },
 

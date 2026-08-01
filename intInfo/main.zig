@@ -21,7 +21,8 @@ pub fn main(stuff:std.process.Init.Minimal) !u8 {
 
     which = blk: {
         const W = @typeInfo(@TypeOf(which)).optional.child;
-        if (stringToEnum(W, span(args[0]))) |w| {
+        const argv0 = std.fs.path.basename(span(args[0]));
+        if (stringToEnum(W, argv0)) |w| {
             is_alias = true;
             break :blk w;
         }

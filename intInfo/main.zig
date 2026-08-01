@@ -1,13 +1,18 @@
 const std = @import("std");
 
+
+var which:enum{ min, max } = .min;
+
+const Int = std.math.big.int.Managed;
+
+const assert = std.debug.assert;
+
 var threaded = std.Io.Threaded.init_single_threaded;
 var io:std.Io = threaded.io();
 const alloc = std.heap.page_allocator; //really, I don't need anything else for this
-const Int = std.math.big.int.Managed;
-var which:enum{ min, max } = .max;
+
 
 pub fn main(stuff:std.process.Init.Minimal) !u8 {
-
     if (stuff.args.vector.len != 2) {
         if (stuff.args.vector.len < 2)
             try eprint("not enough args (need exactly one)\n", .{})
@@ -31,7 +36,7 @@ pub fn main(stuff:std.process.Init.Minimal) !u8 {
         if (!std.ascii.isDigit(b)) return try invalid();
         bits = (bits * 10) + (b-'0');
     }
-    if (bits == 0) {
+    if (bits == 0 or (which == .min and sign == 0)) {
         try print("0\n", .{});
         return 0;
     }
@@ -40,6 +45,7 @@ pub fn main(stuff:std.process.Init.Minimal) !u8 {
     //   (printing each chunk to terminal)
     const str = sw: switch (which) {
         .max => {
+            assert(bits > 0);
             var max:Int = try .init(alloc);
             defer max.deinit();
             var one:Int = try .initSet(alloc, 1);
@@ -48,7 +54,16 @@ pub fn main(stuff:std.process.Init.Minimal) !u8 {
             try max.sub(&max, &one);
             break :sw try max.toString(alloc, 10, .lower);
         },
-        .min => unreachable,
+        .min => {
+            assert(bits > 0 and sign == 1);
+            var min:Int = try .init(alloc);
+            defer min.deinit();
+            var one:Int = try .initSet(alloc, 1);
+            defer one.deinit();
+            try min.shiftLeft(&one, bits - 1);
+            min.negate();
+            break :sw try min.toString(alloc, 10, .lower);
+        },
     };
     defer alloc.free(str);
     try print("{s}\n", .{str});

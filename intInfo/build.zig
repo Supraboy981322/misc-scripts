@@ -1,6 +1,7 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
+    const do_symlink = b.option(bool, "do_symlink", "create symlinks for binary") orelse false;
     const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{});
     const bin = b.addExecutable(.{
@@ -12,7 +13,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
     b.installArtifact(bin);
-    try doSymlinks(b, bin);
+    if (do_symlink) try doSymlinks(b, bin);
     const run_bin = b.addRunArtifact(bin);
     if (b.args) |args| run_bin.addArgs(args);
     const run_step = b.step("run", "run the program");

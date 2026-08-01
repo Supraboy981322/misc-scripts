@@ -1,7 +1,7 @@
 const std = @import("std");
 
 
-var which:?enum{ min, max } = null;
+var which:?enum{ min, minInt, max, maxInt } = null;
 var is_alias:bool = false;
 var args:[]const [*:0]const u8 = undefined;
 
@@ -54,7 +54,7 @@ pub fn main(stuff:std.process.Init.Minimal) !u8 {
     }
 
     const str = sw: switch (which.?) {
-        .max => {
+        .max, .maxInt => {
             assert(bits > 0);
             var max:Int = try .init(alloc);
             defer max.deinit();
@@ -64,7 +64,7 @@ pub fn main(stuff:std.process.Init.Minimal) !u8 {
             try max.sub(&max, &one);
             break :sw try max.toString(alloc, 10, .lower);
         },
-        .min => {
+        .min, .minInt => {
             assert(bits > 0 and sign == 1);
             var min:Int = try .init(alloc);
             defer min.deinit();

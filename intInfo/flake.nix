@@ -26,6 +26,19 @@
           version = "0.1.0";
           src = ./.;
           nativeBuildInputs = [ zig.hook ];
+          buildPhase = ''
+            zig build \
+              -Doptimize=ReleaseSafe \
+              --cache-dir $TMPDIR/zig-cache \
+              --global-cache-dir $TMPDIR/zig-global-cache
+          '';
+          installPhase = ''
+            mkdir -p "$out/bin"
+            cp -r zig-out/bin/* "$out/bin/"
+            for name in "maxInt" "minInt"; do
+              ln -s "$out/bin/intInfo" "$out/bin/$name"
+            done
+          '';
         };
         devShells.default = pkgs.mkShell {
           packages = [ zig ];

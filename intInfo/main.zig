@@ -1,11 +1,15 @@
 const std = @import("std");
 
 
-var which:enum{ min, max } = .min;
+var which:?enum{ min, max } = null;
+var is_alias:bool = false;
+var args:[]const [*:0]const u8 = undefined;
 
 const Int = std.math.big.int.Managed;
 
 const assert = std.debug.assert;
+const stringToEnum = std.meta.stringToEnum;
+const span = std.mem.span;
 
 var threaded = std.Io.Threaded.init_single_threaded;
 var io:std.Io = threaded.io();
@@ -13,15 +17,23 @@ const alloc = std.heap.page_allocator; //really, I don't need anything else for 
 
 
 pub fn main(stuff:std.process.Init.Minimal) !u8 {
-    if (stuff.args.vector.len != 2) {
-        if (stuff.args.vector.len < 2)
-            try eprint("not enough args (need exactly one)\n", .{})
-        else
-            try eprint("too many args (need exactly one)\n", .{});
-        return 1;
-    }
+    args = stuff.args.vector;
 
-    const thing = try alloc.dupe(u8, std.mem.span(stuff.args.vector[1]));
+    which = blk: {
+        const W = @typeInfo(@TypeOf(which)).optional.child;
+        if (stringToEnum(W, span(args[0]))) |w| {
+            is_alias = true;
+            break :blk w;
+        }
+        if (args.len < 2) return needArgs(false);
+        const w = stringToEnum(W, span(args[1])) orelse return invalid();
+        if (args.len < 3) return try needArgs(true);
+        break :blk w;
+    };
+
+    if (args.len < 2) return try needArgs(false);
+
+    const thing = try alloc.dupe(u8, span(args[if (is_alias) 1 else 2]));
     defer alloc.free(thing);
     if (thing.len < 2) return try invalid();
 
@@ -41,9 +53,7 @@ pub fn main(stuff:std.process.Init.Minimal) !u8 {
         return 0;
     }
 
-    // TODO: this can (probably) be done fast (with less memory chunked
-    //   (printing each chunk to terminal)
-    const str = sw: switch (which) {
+    const str = sw: switch (which.?) {
         .max => {
             assert(bits > 0);
             var max:Int = try .init(alloc);
@@ -88,6 +98,34 @@ pub fn print(comptime msg:[]const u8, stuff:anytype) !void {
 }
 
 fn invalid() !u8 {
-    try eprint("invalid integer type (expected the format (eg) u32 or i32/s32)", .{});
+    if (which) |_| {
+        try eprint("invalid integer type (expected the format (eg) u32 or i32/s32)", .{});
+        return 1;
+    }
+    try eprint(
+        \\unknown info ({s})
+        \\  expected one of:
+    ++ comptime blk: {
+        var buf:[]const u8 = &.{};
+        const W = @typeInfo(@TypeOf(which)).optional.child;
+        for (std.meta.tags(W)) |tag|
+            buf = buf ++ "\n    - " ++ @tagName(tag) ++ " (or " ++ @tagName(tag) ++ "Int)";
+        break :blk buf ++ "\n";
+    }, .{args[1]});
+    return 1;
+}
+
+fn needArgs(have_which:bool) !u8 {
+    try eprint("not enough args\n",.{});
+    if (which != null or have_which)
+        try eprint("  need an integer type (eg u32 or i32/s32)", .{})
+    else {
+        try eprint(
+            \\  need an action and an integer type
+            \\    (ie: 'intInfo max u32' or 'intInfo min s19')
+            \\      alternatively, if you've symlinked the binary, you can just run (eg)
+            \\        'maxInt u91'
+        ++ "\n", .{});
+    }
     return 1;
 }

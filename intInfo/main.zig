@@ -59,7 +59,7 @@ pub fn main(stuff:std.process.Init.Minimal) !u8 {
     }
 
     const str = sw: switch (which.?) {
-        .max, .maxInt => {
+        .max => {
             assert(bits > 0);
             var max:Int = try .init(alloc);
             defer max.deinit();
@@ -69,7 +69,7 @@ pub fn main(stuff:std.process.Init.Minimal) !u8 {
             try max.sub(&max, &one);
             break :sw try max.toString(alloc, 10, .lower);
         },
-        .min, .minInt => {
+        .min => {
             assert(bits > 0 and sign == 1);
             var min:Int = try .init(alloc);
             defer min.deinit();
@@ -79,6 +79,8 @@ pub fn main(stuff:std.process.Init.Minimal) !u8 {
             min.negate();
             break :sw try min.toString(alloc, 10, .lower);
         },
+
+        .minInt, .maxInt => unreachable,
     };
     defer alloc.free(str);
     try print("{s}\n", .{str});

@@ -12,8 +12,23 @@ pub fn build(b: *std.Build) void {
         }),
     });
     b.installArtifact(bin);
+    try doSymlinks(b, bin);
     const run_bin = b.addRunArtifact(bin);
     if (b.args) |args| run_bin.addArgs(args);
     const run_step = b.step("run", "run the program");
     run_step.dependOn(&run_bin.step);
+}
+
+fn doSymlinks(b:*std.Build, bin:*std.Build.Step.Compile) !void {
+    for ([_][]const u8 {
+        "maxInt",
+        "minInt",
+    }) |sym_name| {
+        const cmd = b.addSystemCommand(&.{ "ln", "-s" });
+        const bin_path = bin.getEmittedBin();
+        cmd.addFileArg(bin_path);
+        cmd.addFileArg(bin_path.dirname().path(b, sym_name));
+        cmd.step.dependOn(&bin.step);
+        b.getInstallStep().dependOn(&cmd.step);
+    }
 }

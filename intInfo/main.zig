@@ -2,6 +2,7 @@ const std = @import("std");
 
 
 var which:?enum{ min, minInt, max, maxInt } = null;
+const W = @typeInfo(@TypeOf(which)).optional.child;
 var is_alias:bool = false;
 var args:[]const [*:0]const u8 = undefined;
 
@@ -20,7 +21,6 @@ pub fn main(stuff:std.process.Init.Minimal) !u8 {
     args = stuff.args.vector;
 
     which = blk: {
-        const W = @typeInfo(@TypeOf(which)).optional.child;
         const argv0 = std.fs.path.basename(span(args[0]));
         if (stringToEnum(W, argv0)) |w| {
             is_alias = true;
@@ -31,6 +31,10 @@ pub fn main(stuff:std.process.Init.Minimal) !u8 {
         if (args.len < 3) return try needArgs(true);
         break :blk w;
     };
+
+    if (which.? == .minInt or which.? == .maxInt) {
+        which = stringToEnum(W, @tagName(which.?)[0..3]).?;
+    }
 
     if (args.len < 2) return try needArgs(false);
 
@@ -108,7 +112,6 @@ fn invalid() !u8 {
         \\  expected one of:
     ++ comptime blk: {
         var buf:[]const u8 = &.{};
-        const W = @typeInfo(@TypeOf(which)).optional.child;
         for (std.meta.tags(W)) |tag|
             buf = buf ++ "\n    - " ++ @tagName(tag) ++ " (or " ++ @tagName(tag) ++ "Int)";
         break :blk buf ++ "\n";

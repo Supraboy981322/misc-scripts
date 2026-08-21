@@ -2,7 +2,7 @@ const std = @import("std");
 
 var stuff:std.process.Init = undefined;
 var counter:std.atomic.Value(usize) = .init(0);
-var starting_dirs:std.ArrayList([]const u8) = .empty; //TODO
+var starting_dirs:std.ArrayList([]const u8) = .empty;
 var verbose:bool = false;
 var pattern:[]const u8 = "*";
 

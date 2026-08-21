@@ -53,7 +53,7 @@ pub fn recurse(dir:std.Io.Dir) !void {
             wg.async(stuff.io, recurseShim, .{d});
         },
         inline else => |tag| {
-            try log.skip(tag, entry.name);
+            try log.skipping(tag, entry.name);
         },
     };
     try wg.await(stuff.io);

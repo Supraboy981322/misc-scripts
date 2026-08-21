@@ -10,10 +10,23 @@ pub fn init(junk:std.process.Init) !void {
 }
 
 fn mkTag(src:std.builtin.SourceLocation) []const u8 {
-    comptime for (src.fn_name, 0..) |b, i| {
-        if (b == '_') return src.fn_name[0..i];
-    } else
-        unreachable;
+    comptime {
+        const str = for (src.fn_name, 0..) |b, i| {
+            if (b == '_') break src.fn_name[0..i];
+        } else
+            unreachable;
+        const tag = std.meta.stringToEnum(std.meta.DeclEnum(@This()), str).?;
+        const color = switch (tag) {
+            .err => "31",
+            .info => "32",
+            .warn => "33",
+            .verbose => "34",
+            .skipping => "35",
+            .new => "36",
+            else => unreachable,
+        };
+        return "\x1b[" ++ color ++ "m" ++ str ++ "\x1b[0m";
+    }
 }
 
 fn generic(comptime tag:[]const u8, comptime msg:[]const u8, stuff:anytype) !void {
@@ -38,23 +51,15 @@ pub fn warn(comptime msg:[]const u8, stuff:anytype) !void {
     if (be_silent) return;
     try generic(mkTag(@src()), msg, stuff);
 }
-pub fn file(comptime msg:[]const u8, stuff:anytype) !void {
-    if (!do_verbose) return;
-    try generic(mkTag(@src()), msg, stuff);
-}
-pub fn dir(comptime msg:[]const u8, stuff:anytype) !void {
-    if (!do_verbose) return;
-    try generic(mkTag(@src()), msg, stuff);
-}
 pub fn err(comptime msg:[]const u8, stuff:anytype) !void {
     try generic(mkTag(@src()), msg, stuff);
 }
-pub fn skip(comptime which:std.Io.File.Kind, name:[]const u8) !void {
+pub fn skipping(comptime which:std.Io.File.Kind, name:[]const u8) !void {
     if (!do_verbose) return;
-    try generic(mkTag(@src()) ++ "ping (" ++ @tagName(which) ++ ")", "{s}", .{name});
+    try generic(mkTag(@src()) ++ " (" ++ @tagName(which) ++ ")", "{s}", .{name});
 }
 pub fn new(comptime which:std.Io.File.Kind, name:[]const u8) !void {
     if (!do_verbose) return;
-    const tag = if (which == .file) "counting" else "recursing";
+    const tag = "\x1b[36m" ++ (if (which == .file) "counting" else "recursing") ++ "\x1b[0m";
     try generic(tag, "{s}", .{name});
 }

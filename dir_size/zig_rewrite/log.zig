@@ -49,7 +49,12 @@ pub fn dir(comptime msg:[]const u8, stuff:anytype) !void {
 pub fn err(comptime msg:[]const u8, stuff:anytype) !void {
     try generic(mkTag(@src()), msg, stuff);
 }
-pub fn skip(comptime which:[]const u8, comptime msg:[]const u8, stuff:anytype) !void {
+pub fn skip(comptime which:std.Io.File.Kind, name:[]const u8) !void {
     if (!do_verbose) return;
-    try generic(mkTag(@src()) ++ " (" ++ which ++ ")", msg, stuff);
+    try generic(mkTag(@src()) ++ "ping (" ++ @tagName(which) ++ ")", "{s}", .{name});
+}
+pub fn new(comptime which:std.Io.File.Kind, name:[]const u8) !void {
+    if (!do_verbose) return;
+    const tag = if (which == .file) "counting" else "recursing";
+    try generic(tag, "{s}", .{name});
 }

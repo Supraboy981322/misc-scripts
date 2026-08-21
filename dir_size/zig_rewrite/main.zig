@@ -42,18 +42,18 @@ pub fn recurse(dir:std.Io.Dir) !void {
     var itr = dir.iterate();
     while (try itr.next(stuff.io)) |entry| switch (entry.kind) {
         .file => {
-            try log.file("adding file: {s}", .{entry.name});
+            try log.new(.file, entry.name);
             var file = try dir.openFile(stuff.io, entry.name, .{});
             defer file.close(stuff.io);
             _ = counter.fetchAdd(try file.length(stuff.io), .seq_cst);
         },
         .directory => {
-            try log.dir("recursing (directory): {s}", .{entry.name});
+            try log.new(.directory, entry.name);
             const d = try dir.openDir(stuff.io, entry.name, .{ .iterate = true });
             wg.async(stuff.io, recurseShim, .{d});
         },
         inline else => |tag| {
-            try log.skip(@tagName(tag), "{s}", .{entry.name});
+            try log.skip(tag, entry.name);
         },
     };
     try wg.await(stuff.io);

@@ -1,9 +1,9 @@
 const std = @import("std");
+const log = @import("log.zig");
 
 var stuff:std.process.Init = undefined;
 var counter:std.atomic.Value(usize) = .init(0);
 var starting_dirs:std.ArrayList([]const u8) = .empty;
-var verbose:bool = false;
 var pattern:[]const u8 = "*";
 
 const eql = std.mem.eql;
@@ -11,6 +11,7 @@ const eql = std.mem.eql;
 pub fn main(init:std.process.Init) !u8 {
     stuff = init;
     defer starting_dirs.deinit(init.gpa);
+    try log.init(init);
     doArgs() catch |err| {
         std.log.err("failed to parse arguments: {t}", .{err});
         return 1;
@@ -29,7 +30,7 @@ pub fn main(init:std.process.Init) !u8 {
 
 pub fn recurseShim(dir:std.Io.Dir) std.Io.Cancelable!void {
     recurse(dir) catch |err| {
-        std.log.err("{t}", .{err});
+        try log.err("{t}", .{err});
         return error.Canceled;
     };
 }
@@ -41,16 +42,18 @@ pub fn recurse(dir:std.Io.Dir) !void {
     var itr = dir.iterate();
     while (try itr.next(stuff.io)) |entry| switch (entry.kind) {
         .file => {
+            try log.file("adding file: {s}", .{entry.name});
             var file = try dir.openFile(stuff.io, entry.name, .{});
             defer file.close(stuff.io);
             _ = counter.fetchAdd(try file.length(stuff.io), .seq_cst);
         },
         .directory => {
+            try log.dir("recursing (directory): {s}", .{entry.name});
             const d = try dir.openDir(stuff.io, entry.name, .{ .iterate = true });
             wg.async(stuff.io, recurseShim, .{d});
         },
-        else => |tag| {
-            std.log.debug("skipping ({t}): {s}", .{tag, entry.name});
+        inline else => |tag| {
+            try log.skip(@tagName(tag), "{s}", .{entry.name});
         },
     };
     try wg.await(stuff.io);
@@ -70,6 +73,10 @@ pub fn doArgs() !void {
         };
         try starting_dirs.append(stuff.gpa, arg);
     }
+    if (log.do_verbose and log.be_silent) {
+        try log.err("cannot enable both 'silent' and 'verbose'", .{});
+        return error.ArgumentsClobber;
+    }
 }
 
 pub fn flagArg(itr:*std.process.Args.Iterator, flag:[]const u8) !void {
@@ -78,7 +85,11 @@ pub fn flagArg(itr:*std.process.Args.Iterator, flag:[]const u8) !void {
         return;
     }
     if (eql(u8, flag, "verbose")) {
-        verbose = true;
+        log.do_verbose = true;
+        return;
+    }
+    if (eql(u8, flag, "silent")) {
+        log.be_silent = true;
         return;
     }
     if (eql(u8, flag, "pattern")) {
@@ -92,7 +103,7 @@ pub fn flagArg(itr:*std.process.Args.Iterator, flag:[]const u8) !void {
 
 pub fn bundleArg(itr:*std.process.Args.Iterator, bundle:[]const u8) !void {
     if (bundle.len == 0) {
-        std.log.warn("reading list of directories from stdin", .{});
+        try log.warn("reading list of directories from stdin", .{});
         var buf:[std.posix.PATH_MAX]u8 = undefined;
         var stdin = std.Io.File.stdin().reader(stuff.io, &buf);
         while (try stdin.interface.takeDelimiter('\n')) |dir| {
@@ -101,8 +112,9 @@ pub fn bundleArg(itr:*std.process.Args.Iterator, bundle:[]const u8) !void {
         return;
     }
     for (bundle) |b| switch (b) {
-        'V' => verbose = true,
+        'V' => log.do_verbose = true,
         'p' => pattern = itr.next() orelse return error.MissingArgumentValue,
+        'S' => log.be_silent = true,
         else => {
             std.log.info("this -> |{c}|", .{b});
             return error.UnknownArgument;

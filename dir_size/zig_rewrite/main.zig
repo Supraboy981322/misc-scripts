@@ -5,6 +5,7 @@ var stuff:std.process.Init = undefined;
 var counter:std.atomic.Value(usize) = .init(0);
 var starting_dirs:std.ArrayList([]const u8) = .empty;
 var pattern:[]const u8 = "*";
+var flag_human:bool = false;
 
 const eql = std.mem.eql;
 
@@ -26,15 +27,32 @@ pub fn main(init:std.process.Init) !u8 {
     }
     try wg.await(stuff.io);
 
-    {
-        var buf:[1024]u8 = undefined;
-        var stdout = std.Io.File.stdout().writer(stuff.io, &buf);
-        try stdout.interface.print("{s}{d}\n", .{
-            if (!log.be_silent) "counted: " else "",
-            counter.load(.seq_cst)
-        });
-        try stdout.interface.flush();
-    }
+    var buf:[1024]u8 = undefined;
+    const res:[]const u8 = blk: {
+        const n_buf = buf[buf.len-65..];
+        if (!flag_human) {
+            const end = std.fmt.printInt(n_buf, counter.load(.seq_cst), 10, .lower, .{});
+            break :blk n_buf[0..end];
+        }
+        var n:usize = counter.load(.seq_cst);
+        var d:usize = 0;
+        var i:usize = 0;
+        const table = [_][]const u8 { "B", "KB", "MB", "GB", "TB", "PB", "EB", "YB" };
+        while (n > 1000) {
+            if (i + 1 >= table.len) break;
+            d = @rem(n, 1000);
+            n /= 1000;
+            i += 1;
+        }
+        if (d > 100) d /= 10;
+        break :blk try std.fmt.bufPrint(n_buf, "{d}.{d:0>2} {s}", .{n,d, table[i]});
+    };
+    var stdout = std.Io.File.stdout().writer(stuff.io, buf[0..buf.len-65]);
+    try stdout.interface.print("{s}{s}\n", .{
+        if (!log.be_silent) "counted: " else "",
+        res,
+    });
+    try stdout.interface.flush();
 
     return 0;
 }
@@ -109,6 +127,10 @@ pub fn flagArg(itr:*std.process.Args.Iterator, flag:[]const u8) !void {
         };
         return;
     }
+    if (eql(u8, flag, "human-readable")) {
+        flag_human = true;
+        return;
+    }
     return error.UnknownArgument;
 }
 
@@ -126,6 +148,7 @@ pub fn bundleArg(itr:*std.process.Args.Iterator, bundle:[]const u8) !void {
         'V' => log.do_verbose = true,
         'p' => pattern = itr.next() orelse return error.MissingArgumentValue,
         'S' => log.be_silent = true,
+        'H' => flag_human = true,
         else => {
             std.log.info("this -> |{c}|", .{b});
             return error.UnknownArgument;

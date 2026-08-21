@@ -16,7 +16,7 @@ pub fn main(init:std.process.Init) !u8 {
         std.log.err("failed to parse arguments: {t}", .{err});
         return 1;
     };
-    defer std.log.info("counted: {d}", .{counter.load(.seq_cst)});
+    errdefer log.info("counted: {d}", .{counter.load(.seq_cst)}) catch {};
     if (starting_dirs.items.len == 0) try starting_dirs.append(stuff.gpa, ".");
     var wg:std.Io.Group = .init;
     defer wg.cancel(stuff.io);
@@ -25,6 +25,17 @@ pub fn main(init:std.process.Init) !u8 {
         wg.async(stuff.io, recurseShim, .{dir});
     }
     try wg.await(stuff.io);
+
+    {
+        var buf:[1024]u8 = undefined;
+        var stdout = std.Io.File.stdout().writer(stuff.io, &buf);
+        try stdout.interface.print("{s}{d}\n", .{
+            if (!log.be_silent) "counted: " else "",
+            counter.load(.seq_cst)
+        });
+        try stdout.interface.flush();
+    }
+
     return 0;
 }
 

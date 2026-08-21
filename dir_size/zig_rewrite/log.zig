@@ -34,7 +34,7 @@ fn generic(comptime tag:[]const u8, comptime msg:[]const u8, stuff:anytype) !voi
     defer mut.unlock(io);
     var buf:[1024]u8 = undefined;
     var stderr = std.Io.File.stderr().writer(io, &buf);
-    const line = "[" ++ tag ++ "]: " ++ msg ++ "\n";
+    const line = "\x1b[90m[\x1b[0m" ++ tag ++ "\x1b[90m]:\x1b[0m " ++ msg ++ "\n";
     stderr.interface.print(line, stuff) catch return;
     stderr.interface.flush() catch return;
 }
@@ -56,7 +56,8 @@ pub fn err(comptime msg:[]const u8, stuff:anytype) !void {
 }
 pub fn skipping(comptime which:std.Io.File.Kind, name:[]const u8) !void {
     if (!do_verbose) return;
-    try generic(mkTag(@src()) ++ " (" ++ @tagName(which) ++ ")", "{s}", .{name});
+    const tag = " \x1b[90m(\x1b[0;33m" ++ @tagName(which) ++ "\x1b[90m)\x1b[0m";
+    try generic(mkTag(@src()) ++ tag, "{s}", .{name});
 }
 pub fn new(comptime which:std.Io.File.Kind, name:[]const u8) !void {
     if (!do_verbose) return;

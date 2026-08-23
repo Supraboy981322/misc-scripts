@@ -237,7 +237,7 @@ pub fn help() noreturn {
             "only recurse into directories matching a specific (glob) pattern",
         },
     }) |arg| try stdout.interface.print(
-        "    '--{s}' or '-{c}'\n      {s}\n",
+        "    \x1b[33m--{s}\x1b[0m or \x1b[33m-{c}\x1b[0m\n      {s}\n",
         .{arg[0][0], arg[0][1], arg[1]}
     );
     try stdout.interface.flush();

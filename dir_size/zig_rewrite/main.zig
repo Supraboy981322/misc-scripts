@@ -169,6 +169,7 @@ pub fn flagArg(itr:*std.process.Args.Iterator, flag:[]const u8) !void {
         flag_human = true;
         return;
     }
+    if (eql(u8, flag, "help")) help();
     return error.UnknownArgument;
 }
 
@@ -196,9 +197,48 @@ pub fn bundleArg(itr:*std.process.Args.Iterator, bundle:[]const u8) !void {
         },
         'S' => log.be_silent = true,
         'H' => flag_human = true,
+        'h' => help(),
         else => {
             log.info("this -> |{c}|", .{b}) catch {};
             return error.UnknownArgument;
         }
     };
+}
+
+pub fn help() noreturn {
+    defer while (true) std.process.exit(0);
+    errdefer while (true) std.process.exit(1);
+    var buf:[1024]u8 = undefined;
+    var stdout = std.Io.File.stdout().writer(stuff.io, &buf);
+    try stdout.interface.writeAll("dir_size -> help\n  arguments:\n");
+    for ([_]struct{ struct{ []const u8, u8 }, []const u8 }{
+        .{
+            .{ "help", 'h' },
+            "prints this"
+        },
+        .{
+            .{ "human-readable", 'H' },
+            "print resulting count with units (eg: '9.41 KB')"
+        },
+        .{
+            .{ "verbose", 'V' },
+            "enable verbose logging",
+        },
+        .{
+            .{ "silent", 'S' },
+            "(slightly) more silent logging",
+        },
+        .{
+            .{ "pattern", 'p' },
+            "only count files matching a specific (glob) pattern",
+        },
+        .{
+            .{ "dir-pattern", 'P' },
+            "only recurse into directories matching a specific (glob) pattern",
+        },
+    }) |arg| try stdout.interface.print(
+        "    '--{s}' or '-{c}'\n      {s}\n",
+        .{arg[0][0], arg[0][1], arg[1]}
+    );
+    try stdout.interface.flush();
 }

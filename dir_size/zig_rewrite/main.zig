@@ -26,7 +26,7 @@ pub fn main(init:std.process.Init) !u8 {
     };
 
     printResult() catch |err| {
-        log.err("failed to print resul: {t}", .{err}) catch {};
+        log.err("failed to print result: {t}", .{err}) catch {};
         return 1;
     };
 
@@ -108,7 +108,7 @@ pub fn doArgs() !void {
     var itr = stuff.minimal.args.iterate();
     _ = itr.skip();
     while (itr.next()) |arg| {
-        errdefer std.log.info("here -> |{s}|", .{arg});
+        errdefer log.info("here -> |{s}|", .{arg}) catch {};
         if (arg.len > 0) if (arg[0] == '-') {
             if (arg[1] == '-')
                 try flagArg(&itr, arg[2..])
@@ -166,7 +166,7 @@ pub fn bundleArg(itr:*std.process.Args.Iterator, bundle:[]const u8) !void {
         'S' => log.be_silent = true,
         'H' => flag_human = true,
         else => {
-            std.log.info("this -> |{c}|", .{b});
+            log.info("this -> |{c}|", .{b}) catch {};
             return error.UnknownArgument;
         }
     };

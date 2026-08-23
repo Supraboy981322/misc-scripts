@@ -23,7 +23,7 @@ pub fn main(init:std.process.Init) !u8 {
     defer wg.cancel(stuff.io);
     for (starting_dirs.items) |dirname| {
         const dir = try std.Io.Dir.cwd().openDir(stuff.io, dirname, .{ .iterate = true });
-        wg.async(stuff.io, recurseShim, .{dir});
+        wg.async(stuff.io, recurseShim, .{&wg, dir});
     }
     try wg.await(stuff.io);
 
@@ -35,6 +35,7 @@ pub fn main(init:std.process.Init) !u8 {
             break :blk n_buf[0..end];
         }
         var n:usize = counter.load(.seq_cst);
+        if (n == 0) break :blk "0 B";
         var d:usize = 0;
         var i:usize = 0;
         const table = [_][]const u8 { "B", "KB", "MB", "GB", "TB", "PB", "EB", "YB" };
@@ -57,17 +58,15 @@ pub fn main(init:std.process.Init) !u8 {
     return 0;
 }
 
-pub fn recurseShim(dir:std.Io.Dir) std.Io.Cancelable!void {
-    recurse(dir) catch |err| {
+pub fn recurseShim(wg:*std.Io.Group, dir:std.Io.Dir) std.Io.Cancelable!void {
+    recurse(wg, dir) catch |err| {
         try log.err("{t}", .{err});
         return error.Canceled;
     };
 }
 
-pub fn recurse(dir:std.Io.Dir) !void {
+pub fn recurse(wg:*std.Io.Group, dir:std.Io.Dir) !void {
     defer dir.close(stuff.io);
-    var wg:std.Io.Group = .init;
-    defer wg.cancel(stuff.io);
     var itr = dir.iterate();
     while (try itr.next(stuff.io)) |entry| switch (entry.kind) {
         .file => {
@@ -79,13 +78,12 @@ pub fn recurse(dir:std.Io.Dir) !void {
         .directory => {
             try log.new(.directory, entry.name);
             const d = try dir.openDir(stuff.io, entry.name, .{ .iterate = true });
-            wg.async(stuff.io, recurseShim, .{d});
+            wg.async(stuff.io, recurseShim, .{wg, d});
         },
         inline else => |tag| {
             try log.skipping(tag, entry.name);
         },
     };
-    try wg.await(stuff.io);
 }
 
 pub fn doArgs() !void {

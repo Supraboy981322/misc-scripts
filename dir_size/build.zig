@@ -14,11 +14,12 @@ pub fn build(b:*std.Build) void {
     });
     b.installArtifact(bin);
 
-    const glob = b.dependency("glob", .{
+    const glob = b.createModule(.{
+        .root_source_file = b.path("deps/glob/glob.zig"),
         .target = target,
         .optimize = optimize,
     });
-    bin.root_module.addImport("glob", glob.module("glob"));
+    bin.root_module.addImport("glob", glob);
 
     const run_bin = b.addRunArtifact(bin);
     if (b.args) |args| run_bin.addArgs(args);

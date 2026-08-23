@@ -12,48 +12,23 @@ const eql = std.mem.eql;
 pub fn main(init:std.process.Init) !u8 {
     stuff = init;
     defer starting_dirs.deinit(init.gpa);
-    try log.init(init);
+
+    log.init(init);
+
     doArgs() catch |err| {
-        std.log.err("failed to parse arguments: {t}", .{err});
+        log.err("failed to parse arguments: {t}", .{err}) catch {};
         return 1;
     };
-    errdefer log.info("counted: {d}", .{counter.load(.seq_cst)}) catch {};
-    if (starting_dirs.items.len == 0) try starting_dirs.append(stuff.gpa, ".");
-    var wg:std.Io.Group = .init;
-    defer wg.cancel(stuff.io);
-    for (starting_dirs.items) |dirname| {
-        const dir = try std.Io.Dir.cwd().openDir(stuff.io, dirname, .{ .iterate = true });
-        wg.async(stuff.io, recurseShim, .{&wg, dir});
-    }
-    try wg.await(stuff.io);
 
-    var buf:[1024]u8 = undefined;
-    const res:[]const u8 = blk: {
-        const n_buf = buf[buf.len-65..];
-        if (!flag_human) {
-            const end = std.fmt.printInt(n_buf, counter.load(.seq_cst), 10, .lower, .{});
-            break :blk n_buf[0..end];
-        }
-        var n:usize = counter.load(.seq_cst);
-        if (n == 0) break :blk "0 B";
-        var d:usize = 0;
-        var i:usize = 0;
-        const table = [_][]const u8 { "B", "KB", "MB", "GB", "TB", "PB", "EB", "YB" };
-        while (n > 1000) {
-            if (i + 1 >= table.len) break;
-            d = @rem(n, 1000);
-            n /= 1000;
-            i += 1;
-        }
-        if (d > 100) d /= 10;
-        break :blk try std.fmt.bufPrint(n_buf, "{d}.{d:0>2} {s}", .{n,d, table[i]});
+    count() catch |err| {
+        log.err("count failed: {t}", .{err}) catch {};
+        return 1;
     };
-    var stdout = std.Io.File.stdout().writer(stuff.io, buf[0..buf.len-65]);
-    try stdout.interface.print("{s}{s}\n", .{
-        if (!log.be_silent) "counted: " else "",
-        res,
-    });
-    try stdout.interface.flush();
+
+    printResult() catch |err| {
+        log.err("failed to print resul: {t}", .{err}) catch {};
+        return 1;
+    };
 
     return 0;
 }
@@ -84,6 +59,49 @@ pub fn recurse(wg:*std.Io.Group, dir:std.Io.Dir) !void {
             try log.skipping(tag, entry.name);
         },
     };
+}
+
+pub fn count() !void {
+    errdefer log.info("counted: {d}", .{counter.load(.seq_cst)}) catch {};
+    if (starting_dirs.items.len == 0) try starting_dirs.append(stuff.gpa, ".");
+    var wg:std.Io.Group = .init;
+    defer wg.cancel(stuff.io);
+    for (starting_dirs.items) |dirname| {
+        const dir = try std.Io.Dir.cwd().openDir(stuff.io, dirname, .{ .iterate = true });
+        wg.async(stuff.io, recurseShim, .{&wg, dir});
+    }
+    try wg.await(stuff.io);
+}
+
+pub fn calcResult(buf:[]u8) ![]const u8 {
+    if (!flag_human) {
+        const end = std.fmt.printInt(buf, counter.load(.seq_cst), 10, .lower, .{});
+        return buf[0..end];
+    }
+    var n:usize = counter.load(.seq_cst);
+    if (n == 0) return "0 B";
+    var d:usize = 0;
+    var i:usize = 0;
+    const table = [_][]const u8 { "B", "KB", "MB", "GB", "TB", "PB", "EB", "YB" };
+    while (n > 1000) {
+        if (i + 1 >= table.len) break;
+        d = @rem(n, 1000);
+        n /= 1000;
+        i += 1;
+    }
+    if (d > 100) d /= 10;
+    return try std.fmt.bufPrint(buf, "{d}.{d:0>2} {s}", .{n,d, table[i]});
+}
+
+pub fn printResult() !void {
+    var buf:[1024]u8 = undefined;
+    const res = try calcResult(buf[buf.len-65..]);
+    var stdout = std.Io.File.stdout().writer(stuff.io, buf[0..buf.len-65]);
+    try stdout.interface.print("{s}{s}\n", .{
+        if (!log.be_silent) "counted: " else "",
+        res,
+    });
+    try stdout.interface.flush();
 }
 
 pub fn doArgs() !void {

@@ -5,7 +5,7 @@ pub var be_silent:bool = false;
 
 var mut:std.Io.Mutex = .init;
 var io:std.Io = undefined;
-pub fn init(junk:std.process.Init) !void {
+pub fn init(junk:std.process.Init) void {
     io = junk.io;
 }
 

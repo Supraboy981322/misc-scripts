@@ -6,6 +6,7 @@ var stuff:std.process.Init = undefined;
 var counter:std.atomic.Value(usize) = .init(0);
 var starting_dirs:std.ArrayList([]const u8) = .empty;
 var pattern:?[]const u8 = null;
+var dir_pattern:?[]const u8 = null;
 var flag_human:bool = false;
 
 const eql = std.mem.eql;
@@ -54,6 +55,8 @@ pub fn recurse(wg:*std.Io.Group, dir:std.Io.Dir) !void {
             _ = counter.fetchAdd(try file.length(stuff.io), .seq_cst);
         },
         .directory => {
+            if (dir_pattern) |pat|
+                if (!glob.match(pat, entry.name)) continue;
             try log.new(.directory, entry.name);
             const d = try dir.openDir(stuff.io, entry.name, .{ .iterate = true });
             wg.async(stuff.io, recurseShim, .{wg, d});
@@ -129,6 +132,10 @@ pub fn doArgs() !void {
         try log.err("invalid pattern: {t}", .{err});
         return error.InvalidArgumentValue;
     };
+    if (dir_pattern) |pat| glob.validate(pat) catch |err| {
+        try log.err("invalid (dir) pattern: {t}", .{err});
+        return error.InvalidArgumentValue;
+    };
 }
 
 pub fn flagArg(itr:*std.process.Args.Iterator, flag:[]const u8) !void {
@@ -147,6 +154,13 @@ pub fn flagArg(itr:*std.process.Args.Iterator, flag:[]const u8) !void {
     if (eql(u8, flag, "pattern")) {
         if (pattern) |_| return error.PatternAlreadySet; // TODO: multiple patterns
         pattern = itr.next() orelse {
+            return error.MissingArgumentValue;
+        };
+        return;
+    }
+    if (eql(u8, flag, "dir-pattern")) {
+        if (dir_pattern) |_| return error.DirPatternAlreadySet; // TODO: multiple patterns
+        dir_pattern = itr.next() orelse {
             return error.MissingArgumentValue;
         };
         return;
@@ -173,6 +187,12 @@ pub fn bundleArg(itr:*std.process.Args.Iterator, bundle:[]const u8) !void {
         'p' => {
             if (pattern) |_| return error.PatternAlreadySet;
             pattern = itr.next() orelse return error.MissingArgumentValue;
+        },
+        'P' => {
+            if (dir_pattern) |_| return error.DirPatternAlreadySet;
+            dir_pattern = itr.next() orelse {
+                return error.MissingArgumentValue;
+            };
         },
         'S' => log.be_silent = true,
         'H' => flag_human = true,

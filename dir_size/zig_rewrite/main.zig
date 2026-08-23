@@ -1,10 +1,11 @@
 const std = @import("std");
+const glob = @import("glob");
 const log = @import("log.zig");
 
 var stuff:std.process.Init = undefined;
 var counter:std.atomic.Value(usize) = .init(0);
 var starting_dirs:std.ArrayList([]const u8) = .empty;
-var pattern:[]const u8 = "*";
+var pattern:?[]const u8 = null;
 var flag_human:bool = false;
 
 const eql = std.mem.eql;
@@ -45,6 +46,8 @@ pub fn recurse(wg:*std.Io.Group, dir:std.Io.Dir) !void {
     var itr = dir.iterate();
     while (try itr.next(stuff.io)) |entry| switch (entry.kind) {
         .file => {
+            if (pattern) |pat|
+                if (!glob.match(pat, entry.name)) continue;
             try log.new(.file, entry.name);
             var file = try dir.openFile(stuff.io, entry.name, .{});
             defer file.close(stuff.io);
@@ -122,6 +125,10 @@ pub fn doArgs() !void {
         try log.err("cannot enable both 'silent' and 'verbose'", .{});
         return error.ArgumentsClobber;
     }
+    if (pattern) |pat| glob.validate(pat) catch |err| {
+        try log.err("invalid pattern: {t}", .{err});
+        return error.InvalidArgumentValue;
+    };
 }
 
 pub fn flagArg(itr:*std.process.Args.Iterator, flag:[]const u8) !void {
@@ -138,6 +145,7 @@ pub fn flagArg(itr:*std.process.Args.Iterator, flag:[]const u8) !void {
         return;
     }
     if (eql(u8, flag, "pattern")) {
+        if (pattern) |_| return error.PatternAlreadySet; // TODO: multiple patterns
         pattern = itr.next() orelse {
             return error.MissingArgumentValue;
         };
@@ -162,7 +170,10 @@ pub fn bundleArg(itr:*std.process.Args.Iterator, bundle:[]const u8) !void {
     }
     for (bundle) |b| switch (b) {
         'V' => log.do_verbose = true,
-        'p' => pattern = itr.next() orelse return error.MissingArgumentValue,
+        'p' => {
+            if (pattern) |_| return error.PatternAlreadySet;
+            pattern = itr.next() orelse return error.MissingArgumentValue;
+        },
         'S' => log.be_silent = true,
         'H' => flag_human = true,
         else => {

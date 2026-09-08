@@ -11,14 +11,57 @@ pub fn main(init:std.process.Init) !u8 {
     while (paths.pop()) |raw_path| {
         var path = raw_path;
         _ = &path;
-        const stat = try std.Io.Dir.cwd().statFile(init.io, path, .{});
-        switch (stat.kind) {
+        const path_stat = try std.Io.Dir.cwd().statFile(init.io, path, .{});
+        switch (path_stat.kind) {
             .directory => {
                 var dir = try std.Io.Dir.cwd().openDir(init.io, path, .{ .iterate = true });
                 var itr = try dir.walkSelectively(init.gpa);
                 defer itr.deinit();
                 while (try itr.next(init.io)) |entry| {
-                    try stdout.interface.print("{s}\n", .{entry.basename});
+                    const entry_stat = try dir.statFile(init.io, entry.basename, .{});
+                    var perm_buf:["drwxr-xr-x".len]u8 = @splat('-');
+                    var i:usize = 0;
+                    perm_buf[i] = switch (entry_stat.kind) {
+                        .file => '-',
+                        .directory => 'd',
+                        .sym_link => 'l',
+                        .named_pipe => 'p',
+                        .character_device => 'c',
+                        .block_device => 'b',
+                        .unix_domain_socket => 's',
+                        else => '?',
+                    };
+                    i += 1;
+                    const S = std.posix.S;
+                    const m = entry_stat.permissions.toMode();
+                    perm_buf[i..][0..3].* = .{
+                        if (m & S.IRUSR != 0) 'r' else '-',
+                        if (m & S.IWUSR != 0) 'w' else '-',
+                        if (m & S.ISUID != 0)
+                            if (m & S.IXUSR != 0) 's' else 'S'
+                        else
+                            if (m & S.IXUSR != 0) 'x' else '-',
+                    };
+                    i += 3;
+                    perm_buf[i..][0..3].* = .{
+                        if (m & S.IRGRP != 0) 'r' else '-',
+                        if (m & S.IWGRP != 0) 'w' else '-',
+                        if (m & S.ISGID != 0)
+                            if (m & S.IXGRP != 0) 's' else 'S'
+                        else
+                            if (m & S.IXGRP != 0) 'x' else '-',
+                    };
+                    i += 3;
+                    perm_buf[i..][0..3].* = .{
+                        if (m & S.IROTH != 0) 'r' else '-',
+                        if (m & S.IWOTH != 0) 'w' else '-',
+                        if (m & S.ISVTX != 0)
+                            if (m & S.IXOTH != 0) 't' else 'T'
+                        else
+                            if (m & S.IXOTH != 0) 'x' else '-',
+                    };
+                    i += 3;
+                    try stdout.interface.print("{s} {s}\n", .{perm_buf, entry.basename});
                 }
                 try stdout.interface.flush();
             },
@@ -29,7 +72,7 @@ pub fn main(init:std.process.Init) !u8 {
                 _ = try reader.interface.streamRemaining(&stdout.interface);
                 try stdout.interface.flush();
             },
-            else => std.debug.panic("don't know what to do with: {t}", .{stat.kind}),
+            else => std.debug.panic("don't know what to do with: {t}", .{path_stat.kind}),
         }
     }
     return 0;

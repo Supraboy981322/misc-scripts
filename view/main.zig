@@ -13,58 +13,86 @@ pub fn main(init:std.process.Init) !u8 {
         _ = &path;
         const path_stat = try std.Io.Dir.cwd().statFile(init.io, path, .{});
         switch (path_stat.kind) {
+
             .directory => {
                 var dir = try std.Io.Dir.cwd().openDir(init.io, path, .{ .iterate = true });
                 var itr = try dir.walkSelectively(init.gpa);
                 defer itr.deinit();
                 while (try itr.next(init.io)) |entry| {
+
                     const entry_stat = try dir.statFile(init.io, entry.basename, .{});
-                    var perm_buf:["drwxr-xr-x".len]u8 = @splat('-');
-                    var i:usize = 0;
-                    perm_buf[i] = switch (entry_stat.kind) {
-                        .file => '-',
-                        .directory => 'd',
-                        .sym_link => 'l',
-                        .named_pipe => 'p',
-                        .character_device => 'c',
-                        .block_device => 'b',
-                        .unix_domain_socket => 's',
-                        else => '?',
-                    };
-                    i += 1;
-                    const S = std.posix.S;
                     const m = entry_stat.permissions.toMode();
-                    perm_buf[i..][0..3].* = .{
-                        if (m & S.IRUSR != 0) 'r' else '-',
-                        if (m & S.IWUSR != 0) 'w' else '-',
-                        if (m & S.ISUID != 0)
-                            if (m & S.IXUSR != 0) 's' else 'S'
-                        else
-                            if (m & S.IXUSR != 0) 'x' else '-',
+                    const S = std.posix.S;
+                    var i:@Vector(3, usize) = .{ 2, 5, 7 };
+                    const style = 0;
+                    const color = 1;
+                    const char  = 2;
+                    const template = "\x1b[0;30m-";
+
+                    var buf = stdout.interface.buffer[0..template.len * 10];
+                    stdout.interface.end = buf.len;
+                    @memcpy(buf, template ** 10);
+                    buf[i[style]] = '1';
+                    if (entry.kind != .file) {
+                        buf[i[color]] = '4';
+                        buf[i[char]] = switch(entry.kind) {
+                            .directory => 'd',
+                            .sym_link => 'l',
+                            .named_pipe => 'p',
+                            .character_device => 'c',
+                            .block_device => 'b',
+                            .unix_domain_socket => 's',
+                            else => '?',
+                        };
+                    } else {
+                        buf[i[color]-1] = '9';
+                    }
+
+                    const table = [_]struct{ s:u4, o:struct{ s:@TypeOf(m), b:u8 } }{
+                        .{ .s = 0, .o = .{ .s = S.ISUID, .b = 's' } },
+                        .{ .s = 3, .o = .{ .s = S.ISGID, .b = 's' } },
+                        .{ .s = 6, .o = .{ .s = S.ISVTX, .b = 't' } },
                     };
-                    i += 3;
-                    perm_buf[i..][0..3].* = .{
-                        if (m & S.IRGRP != 0) 'r' else '-',
-                        if (m & S.IWGRP != 0) 'w' else '-',
-                        if (m & S.ISGID != 0)
-                            if (m & S.IXGRP != 0) 's' else 'S'
-                        else
-                            if (m & S.IXGRP != 0) 'x' else '-',
+                    for (table) |thing| inline for (0..3) |j| {
+                        i += @splat(template.len);
+                        const mask = @as(u9, 0b100_000_000) >> @intCast(thing.s + j);
+                        const s = (m & mask) != 0;
+                        if (j < 2) {
+                            if (!s) {
+                                buf[i[style]] = '1';
+                                buf[i[color]-1] = '9';
+                            } else {
+                                buf[i[char]], buf[i[color]] = switch (j) {
+                                    0 => .{ 'r', '3' },
+                                    1 => .{ 'w', '1' },
+                                    else => unreachable,
+                                };
+                            }
+                            continue;
+                        }
+                        const o = (m & thing.o.s) != 0;
+                        if (s != o or (s and o)) {
+                            buf[i[char]] =
+                                if (s)
+                                    ([_]u8{'x', thing.o.b})[@intFromBool(o)]
+                                else
+                                    thing.o.b - 32;
+                            buf[i[color]] = if (o) '5' else '2';
+                        } else {
+                            buf[i[style]] = '1';
+                            buf[i[color]-1] = '9';
+                        }
                     };
-                    i += 3;
-                    perm_buf[i..][0..3].* = .{
-                        if (m & S.IROTH != 0) 'r' else '-',
-                        if (m & S.IWOTH != 0) 'w' else '-',
-                        if (m & S.ISVTX != 0)
-                            if (m & S.IXOTH != 0) 't' else 'T'
-                        else
-                            if (m & S.IXOTH != 0) 'x' else '-',
-                    };
-                    i += 3;
-                    try stdout.interface.print("{s} {s}\n", .{perm_buf, entry.basename});
+
+                    try stdout.interface.print("\x1b[0m \x1b[1;{s}m{s}\n", .{
+                        if (entry_stat.kind == .directory) "34" else "0",
+                        entry.basename,
+                    });
+                    try stdout.interface.flush();
                 }
                 try stdout.interface.flush();
             },
+
             .character_device, .file => {
                 var file = try std.Io.Dir.cwd().openFile(init.io, path, .{});
                 defer file.close(init.io);
@@ -72,7 +100,10 @@ pub fn main(init:std.process.Init) !u8 {
                 _ = try reader.interface.streamRemaining(&stdout.interface);
                 try stdout.interface.flush();
             },
-            else => std.debug.panic("don't know what to do with: {t}", .{path_stat.kind}),
+
+            else => std.debug.panic(
+                "don't know what to do with: {t} ({s})", .{path_stat.kind, path}
+            ),
         }
     }
     return 0;

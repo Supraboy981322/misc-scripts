@@ -136,23 +136,19 @@ pub fn main(init:std.process.Init) !u8 {
                             else => if (known_extensions.get(ext)) |c|
                                 c.color
                             else if (ext.len > 0 and ext[ext.len-1] == '~')
-                                "1;90"
+                                known_extensions.get("~").?.color
                             else
                                 "0"
                         },
                         entry.basename,
                     });
-                    if (opts.l) {
+                    col += 1;
+                    if (opts.l or col > ((term_width / longest)-|1)) {
+                        col = 0;
                         try stdout.interface.writeByte('\n');
-                    } else {
-                        col += 1;
-                        if (pos < count-1) if (col > ((term_width / longest)-|1)) {
-                            col = 0;
-                            try stdout.interface.writeByte('\n');
-                        } else {
-                            const len = longest - (entry.basename.len);
-                            _ = try stdout.interface.splatByte(' ', len);
-                        };
+                    } else if (pos < count-1) {
+                        const len = longest - (entry.basename.len);
+                        _ = try stdout.interface.splatByte(' ', len);
                     }
                     try stdout.interface.flush();
                 }
@@ -170,9 +166,6 @@ pub fn main(init:std.process.Init) !u8 {
             else => std.debug.panic(
                 "don't know what to do with: {t} ({s})", .{path_stat.kind, path}
             ),
-        }
-        if (path_stat.kind == .directory) {
-            try stdout.interface.writeAll("\n");
         }
         try stdout.interface.flush();
     }

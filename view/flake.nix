@@ -1,7 +1,5 @@
-# TODO: a name (for some dumb historical reason 'view' is taken by Vim)
-
 {
-  description = "view (just a crappy clone of cat and ls in one program)";
+  description = "view_prog (just a crappy clone of cat and ls in one program)";
 
   inputs = {
     pkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -23,7 +21,7 @@
         };
       in {
         packages.default = pkgs.stdenv.mkDerivation {
-          pname = "view";
+          pname = "view_prog";
           version = "0.1.0";
           src = ./.;
           nativeBuildInputs = [ zig.hook ];
@@ -33,11 +31,11 @@
               main.zig \
               --cache-dir $TMPDIR/zig-cache \
               --global-cache-dir $TMPDIR/zig-global-cache \
-              -femit-bin=view
+              -femit-bin=view_prog
           '';
           installPhase = ''
             mkdir -p "$out/bin"
-            cp -r view "$out/bin/"
+            cp -r view_prog "$out/bin/"
           '';
         };
         devShells.default = pkgs.mkShell {

@@ -3,6 +3,8 @@ const std = @import("std");
 var paths:std.ArrayList([]const u8) = .empty;
 const opts = struct {
     pub var l = false;
+    pub var a = false;
+    pub var D = false;
 };
 
 pub fn main(init:std.process.Init) !u8 {
@@ -52,6 +54,7 @@ pub fn main(init:std.process.Init) !u8 {
                 var col:usize = 0;
                 var pos:usize = 0;
                 while (try itr.next(init.io)) |entry| : (pos += 1) {
+                    if (entry.basename.len > 0 and entry.basename[0] == '.' and !opts.a) continue;
                     errdefer {
                         stdout.interface.writeByte('\n') catch {};
                         stdout.interface.flush() catch {};
@@ -188,6 +191,8 @@ pub fn doArgs(init:std.process.Init) !void {
             }
             for (arg[1..]) |a| switch (a) {
                 'l' => opts.l = true,
+                'a' => opts.a = true,
+                'D' => opts.D = true,
                 '-' => ignore_rest = true,
                 else => return error.UnknownArgument,
             };
@@ -195,8 +200,9 @@ pub fn doArgs(init:std.process.Init) !void {
         }
         try paths.insert(init.gpa, 0, arg);
     }
-    if (paths.items.len == 0)
-        try paths.append(init.gpa, "/dev/stdin");
+    if (paths.items.len == 0) {
+        try paths.append(init.gpa, if (opts.D) "." else "/dev/stdin");
+    }
 }
 
 pub const known_extensions = blk: {

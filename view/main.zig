@@ -11,7 +11,7 @@ pub fn main(init:std.process.Init) !u8 {
     var out_buf:[1024]u8 = undefined;
     var stdout = std.Io.File.stdout().writer(init.io, &out_buf);
     var in_buf:[1024]u8 = undefined;
-    const many = paths.items.len > 0;
+    const many = paths.items.len > 1;
     while (paths.pop()) |raw_path| {
         var path = raw_path;
         _ = &path;
@@ -133,7 +133,9 @@ pub fn main(init:std.process.Init) !u8 {
                 "don't know what to do with: {t} ({s})", .{path_stat.kind, path}
             ),
         }
-        try stdout.interface.writeAll("\n");
+        if (path_stat.kind == .directory and many) {
+            try stdout.interface.writeAll("\n");
+        }
         try stdout.interface.flush();
     }
     return 0;

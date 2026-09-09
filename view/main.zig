@@ -5,6 +5,8 @@ const opts = struct {
     pub var l = false;
 };
 
+const width = 80;
+
 pub fn main(init:std.process.Init) !u8 {
     defer paths.deinit(init.gpa);
     try doArgs(init);
@@ -27,6 +29,12 @@ pub fn main(init:std.process.Init) !u8 {
                 var dir = try std.Io.Dir.cwd().openDir(init.io, path, .{ .iterate = true });
                 var itr = try dir.walkSelectively(init.gpa);
                 defer itr.deinit();
+                var longest:usize = 0;
+                while (try itr.next(init.io)) |entry|
+                    longest = @max(entry.basename.len + 2, longest);
+                itr.deinit();
+                itr = try dir.walkSelectively(init.gpa);
+                var col:usize = 0;
                 while (try itr.next(init.io)) |entry| {
                     errdefer {
                         stdout.interface.writeByte('\n') catch {};
@@ -102,7 +110,7 @@ pub fn main(init:std.process.Init) !u8 {
                         const e = std.fs.path.extension(entry.basename);
                         break :blk e[@min(e.len-|1, 1)..e.len];
                     };
-                    try stdout.interface.print("\x1b[{s}m{s}{c}\x1b[0m", .{
+                    try stdout.interface.print("\x1b[{s}m{s}\x1b[0m", .{
                         switch (entry.kind) {
                             .directory => "1;34",
                             .sym_link => "1;36",
@@ -114,8 +122,18 @@ pub fn main(init:std.process.Init) !u8 {
                                 "0"
                         },
                         entry.basename,
-                        @as(u8, if (opts.l) '\n' else '\t')
                     });
+                    if (opts.l) {
+                        try stdout.interface.writeByte('\n');
+                    } else {
+                        col += 1;
+                        if (col > (width / longest)) {
+                            col = 0;
+                            try stdout.interface.writeByte('\n');
+                        } else {
+                            _ = try stdout.interface.splatByte(' ', longest - (entry.basename.len));
+                        }
+                    }
                     try stdout.interface.flush();
                 }
                 try stdout.interface.flush();

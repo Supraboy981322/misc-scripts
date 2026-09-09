@@ -168,7 +168,7 @@ pub fn main(init:std.process.Init) !u8 {
                 "don't know what to do with: {t} ({s})", .{path_stat.kind, path}
             ),
         }
-        if (path_stat.kind == .directory and many) {
+        if (path_stat.kind == .directory) {
             try stdout.interface.writeAll("\n");
         }
         try stdout.interface.flush();

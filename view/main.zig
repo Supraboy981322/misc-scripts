@@ -7,13 +7,15 @@ const opts = struct {
     pub var D = false;
 };
 
+var term_width:usize = 0;
+
 pub fn main(init:std.process.Init) !u8 {
     defer paths.deinit(init.gpa);
     try doArgs(init);
 
     var out_buf:[1024]u8 = undefined;
     var stdout = std.Io.File.stdout().writer(init.io, &out_buf);
-    const term_width = blk: {
+    term_width = blk: {
         var s:extern struct {
             ws_row:u16 = 0,
             ws_col:u16 = 0,
@@ -41,119 +43,7 @@ pub fn main(init:std.process.Init) !u8 {
         const path_stat = try std.Io.Dir.cwd().statFile(init.io, path, .{});
         switch (path_stat.kind) {
 
-            .directory => {
-                var dir = try std.Io.Dir.cwd().openDir(init.io, path, .{ .iterate = true });
-                var itr = try dir.walkSelectively(init.gpa);
-                defer itr.deinit();
-                var count:usize = 0;
-                var longest:usize = 0;
-                while (try itr.next(init.io)) |entry| : (count += 1)
-                    longest = @max(entry.basename.len + 2, longest);
-                itr.deinit();
-                itr = try dir.walkSelectively(init.gpa);
-                var col:usize = 0;
-                var pos:usize = 0;
-                while (try itr.next(init.io)) |entry| : (pos += 1) {
-                    if (entry.basename.len > 0 and entry.basename[0] == '.' and !opts.a) continue;
-                    errdefer {
-                        stdout.interface.writeByte('\n') catch {};
-                        stdout.interface.flush() catch {};
-                        std.log.info("at entry |{s}|", .{entry.basename});
-                    }
-                    const entry_stat = try dir.statFile(init.io, entry.basename, .{
-                        .follow_symlinks = false
-                    });
-
-                    if (opts.l) {
-                        const m = entry_stat.permissions.toMode();
-                        const S = std.posix.S;
-                        var i:@Vector(3, usize) = .{ 2, 5, 7 };
-                        const style = 0;
-                        const color = 1;
-                        const char  = 2;
-                        const template = "\x1b[0;30m-";
-
-                        var buf = stdout.interface.buffer[0..template.len * 10];
-                        stdout.interface.end = buf.len;
-                        @memcpy(buf, template ** 10);
-
-                        buf[i[style]] = '1';
-                        if (entry.kind != .file) {
-                            buf[i[color]] = '4';
-                            buf[i[char]] = switch(entry.kind) {
-                                .directory => 'd',
-                                .sym_link => 'l',
-                                .named_pipe => 'p',
-                                .character_device => 'c',
-                                .block_device => 'b',
-                                .unix_domain_socket => 's',
-                                else => '?',
-                            };
-                        } else {
-                            buf[i[color]-1] = '9';
-                        }
-
-                        const table = [_]struct{ s:u4, o:struct{ s:@TypeOf(m), b:u8 } }{
-                            .{ .s = 0, .o = .{ .s = S.ISUID, .b = 's' } },
-                            .{ .s = 3, .o = .{ .s = S.ISGID, .b = 's' } },
-                            .{ .s = 6, .o = .{ .s = S.ISVTX, .b = 't' } },
-                        };
-                        for (table) |thing| inline for (0..3) |j| {
-                            i += @splat(template.len);
-                            const mask = @as(u9, 0b100_000_000) >> @intCast(thing.s + j);
-                            const s = (m & mask) != 0;
-                            const o = if (j == 2) (m & thing.o.s) != 0 else false;
-                            if (!(s != o or (s and o))) {
-                                buf[i[style]] = '1';
-                                buf[i[color]-1] = '9';
-                            } else if (j < 2) {
-                                buf[i[char]], buf[i[color]] = switch (j) {
-                                    0 => .{ 'r', '3' },
-                                    1 => .{ 'w', '1' },
-                                    else => comptime unreachable,
-                                };
-                            } else {
-                                buf[i[char]] =
-                                    if (s)
-                                        ([_]u8{'x', thing.o.b})[@intFromBool(o)]
-                                    else
-                                        thing.o.b - 32;
-                                buf[i[color]] = if (o) '5' else '2';
-                            }
-                        };
-
-                        try stdout.interface.writeAll("\x1b[0m ");
-                    }
-
-                    const ext = blk: {
-                        const e = std.fs.path.extension(entry.basename);
-                        break :blk e[@min(e.len-|1, 1)..e.len];
-                    };
-                    try stdout.interface.print("\x1b[{s}m{s}\x1b[0m", .{
-                        switch (entry.kind) {
-                            .directory => "1;34",
-                            .sym_link => "1;36",
-                            else => if (known_extensions.get(ext)) |c|
-                                c.color
-                            else if (ext.len > 0 and ext[ext.len-1] == '~')
-                                known_extensions.get("~").?.color
-                            else
-                                "0"
-                        },
-                        entry.basename,
-                    });
-                    col += 1;
-                    if (opts.l or col > ((term_width / longest)-|1) or pos == count-1) {
-                        col = 0;
-                        try stdout.interface.writeByte('\n');
-                    } else if (pos < count-1) {
-                        const len = longest - (entry.basename.len);
-                        _ = try stdout.interface.splatByte(' ', len);
-                    }
-                    try stdout.interface.flush();
-                }
-                try stdout.interface.flush();
-            },
+            .directory => try doDir(init, path, &stdout.interface),
 
             .character_device, .file => {
                 var file = try std.Io.Dir.cwd().openFile(init.io, path, .{});
@@ -170,6 +60,122 @@ pub fn main(init:std.process.Init) !u8 {
         try stdout.interface.flush();
     }
     return 0;
+}
+
+pub fn doDir(init:std.process.Init, path:[]const u8, stdout:*std.Io.Writer) !void {
+    var dir = try std.Io.Dir.cwd().openDir(init.io, path, .{ .iterate = true });
+    var itr = try dir.walkSelectively(init.gpa);
+    defer itr.deinit();
+
+    var count:usize = 0;
+    var longest:usize = 0;
+    while (try itr.next(init.io)) |entry| : (count += 1)
+        longest = @max(entry.basename.len + 2, longest);
+    itr.deinit();
+    itr = try dir.walkSelectively(init.gpa);
+
+    var col:usize = 0;
+    var pos:usize = 0;
+    while (try itr.next(init.io)) |entry| : (pos += 1) {
+        if (entry.basename.len > 0 and entry.basename[0] == '.' and !opts.a) continue;
+        errdefer {
+            stdout.writeByte('\n') catch {};
+            stdout.flush() catch {};
+            std.log.info("at entry |{s}|", .{entry.basename});
+        }
+        const entry_stat = try dir.statFile(init.io, entry.basename, .{
+            .follow_symlinks = false
+        });
+
+        if (opts.l) {
+            const template = "\x1b[0;30m-";
+            var i:@Vector(3, usize) = .{ 2, 5, 7 };
+            const style = 0;
+            const color = 1;
+            const char  = 2;
+
+            var buf = stdout.buffer[0..template.len * 10];
+            stdout.end = buf.len;
+            @memcpy(buf, template ** 10);
+
+            buf[i[style]] = '1';
+            if (entry.kind != .file) {
+                buf[i[color]] = '4';
+                buf[i[char]] = switch(entry.kind) {
+                    .directory => 'd',
+                    .sym_link => 'l',
+                    .named_pipe => 'p',
+                    .character_device => 'c',
+                    .block_device => 'b',
+                    .unix_domain_socket => 's',
+                    else => '?',
+                };
+            } else {
+                buf[i[color]-1] = '9';
+            }
+
+            const m = entry_stat.permissions.toMode();
+            const S = std.posix.S;
+            const table = [_]struct{ s:u4, o:struct{ s:@TypeOf(m), b:u8 } }{
+                .{ .s = 0, .o = .{ .s = S.ISUID, .b = 's' } },
+                .{ .s = 3, .o = .{ .s = S.ISGID, .b = 's' } },
+                .{ .s = 6, .o = .{ .s = S.ISVTX, .b = 't' } },
+            };
+            for (table) |thing| inline for (0..3) |j| {
+                i += @splat(template.len);
+                const mask = @as(u9, 0b100_000_000) >> @intCast(thing.s + j);
+                const s = (m & mask) != 0;
+                const o = if (j == 2) (m & thing.o.s) != 0 else false;
+                if (!(s != o or (s and o))) {
+                    buf[i[style]] = '1';
+                    buf[i[color]-1] = '9';
+                } else if (j < 2) {
+                    buf[i[char]], buf[i[color]] = switch (j) {
+                        0 => .{ 'r', '3' },
+                        1 => .{ 'w', '1' },
+                        else => comptime unreachable,
+                    };
+                } else {
+                    buf[i[char]] =
+                        if (s)
+                            ([_]u8{'x', thing.o.b})[@intFromBool(o)]
+                        else
+                            thing.o.b - 32;
+                    buf[i[color]] = if (o) '5' else '2';
+                }
+            };
+
+            try stdout.writeAll("\x1b[0m ");
+        }
+
+        const ext = blk: {
+            const e = std.fs.path.extension(entry.basename);
+            break :blk e[@min(e.len-|1, 1)..e.len];
+        };
+        try stdout.print("\x1b[{s}m{s}\x1b[0m", .{
+            switch (entry.kind) {
+                .directory => "1;34",
+                .sym_link => "1;36",
+                else => if (known_extensions.get(ext)) |c|
+                    c.color
+                else if (ext.len > 0 and ext[ext.len-1] == '~')
+                    known_extensions.get("~").?.color
+                else
+                    "0"
+            },
+            entry.basename,
+        });
+        col += 1;
+        if (opts.l or col > ((term_width / longest)-|1) or pos == count-1) {
+            col = 0;
+            try stdout.writeByte('\n');
+        } else if (pos < count-1) {
+            const len = longest - (entry.basename.len);
+            _ = try stdout.splatByte(' ', len);
+        }
+        try stdout.flush();
+    }
+    try stdout.flush();
 }
 
 pub fn doArgs(init:std.process.Init) !void {

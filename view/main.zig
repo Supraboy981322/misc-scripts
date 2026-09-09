@@ -102,10 +102,10 @@ pub fn main(init:std.process.Init) !u8 {
                         const e = std.fs.path.extension(entry.basename);
                         break :blk e[@min(e.len-|1, 1)..e.len];
                     };
-                    try stdout.interface.print("\x1b[1;{s}m{s}{c}\x1b[0m", .{
+                    try stdout.interface.print("\x1b[{s}m{s}{c}\x1b[0m", .{
                         switch (entry.kind) {
-                            .directory => "34",
-                            .sym_link => "36",
+                            .directory => "1;34",
+                            .sym_link => "1;36",
                             else => if (known_extensions.get(ext)) |c|
                                 c.color
                             else if (ext.len > 0 and ext[ext.len-1] == '~')
@@ -188,9 +188,8 @@ pub const known_extensions = blk: {
         .{
             &.{
                 "tar", "zip", "pak",
-                "br", "xz", "lz", "lzma",
-                "gz", "flate",
-                "txz", "tgz", "tbr",
+                "br", "xz", "lz", "lzma", "bz", "bz2", "lzo", "gz", "flate",
+                "txz", "tgz", "tbr", "tlz", "tbz", "tbz2", "taz", "tzma",
                 "7z", //do people really use this?
                 "torrent",
             },
@@ -200,28 +199,33 @@ pub const known_extensions = blk: {
         .{
             &.{
                 "jai", //can't wait
-                "h", "c", "cpp", "c++",
-                "ok", "oskar",
-                "zig", "zon",
-                "asm",
-                "nix",
-                "src", "script",
+                "h", //this' the best they could think of?
+                "c", //so close to perfection
+                "cpp", "c++", //far too complicated
+                "ok", "oskar", //my ideal language (WIP (private project))
+                "zig", "zon", //sad that this' as close as modern languages get to not being a pain in the ass
+                "asm", //everyone should write something (semi) serious at least once in assembly
+                "nix", //I don't understand why one would do it any other way
+                "src", "script", //why name it anyways?
                 "b",
-                "el", "cl", "lisp",
-                "org",
-                "ml",
-                "vim", "vimscript",
+                "el", "cl", "lisp", //neat
+                "org", //nice
+                "ml", //I return to this *[insert tomorrow's date]*
+                "vim", "vimscript", //kind-of crappy
                 "sh",
-                "lua",
-                "go",
-                "js", "py", "ts",
+                "lua", //meh
+                "go", //feels like toy
+                "js", "py", //I cannot form words for these
+                "ts", //why?
                 "cc",
-                "md",
+                "md", //ugh
                 "xml", "json", "conf", "csv",
                 "bat",
-                "html",
-                "bdf",
+                "html", //ehh
+                "bdf", //at least it can be read and parsed manually easily
                 "odin", //you usually write TS, you're feeling adventurous, but you're scared of a proper low-level language
+                "rs", //just no
+                "java", //people really use this outside of school?
             },
             .{ .color = "1;33" },
         },

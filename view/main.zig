@@ -143,7 +143,7 @@ pub fn main(init:std.process.Init) !u8 {
                         entry.basename,
                     });
                     col += 1;
-                    if (opts.l or col > ((term_width / longest)-|1)) {
+                    if (opts.l or col > ((term_width / longest)-|1) or pos == count-1) {
                         col = 0;
                         try stdout.interface.writeByte('\n');
                     } else if (pos < count-1) {

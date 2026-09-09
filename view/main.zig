@@ -5,15 +5,29 @@ const opts = struct {
     pub var l = false;
 };
 
-const width = 80;
-
 pub fn main(init:std.process.Init) !u8 {
     defer paths.deinit(init.gpa);
     try doArgs(init);
+
     var out_buf:[1024]u8 = undefined;
     var stdout = std.Io.File.stdout().writer(init.io, &out_buf);
+    const term_width = blk: {
+        var s:extern struct {
+            ws_row:u16 = 0,
+            ws_col:u16 = 0,
+            ws_xpixel:u16 = 0,
+            ws_ypixel:u16 = 0,
+        } = .{};
+        if (std.os.linux.ioctl(1, 0x5413, @intFromPtr(&s)) != 0) {
+            std.log.debug("failed to query terminal size",.{});
+            break :blk 80;
+        }
+        break :blk s.ws_col;
+    };
+
     var in_buf:[1024]u8 = undefined;
     const many = paths.items.len > 1;
+
     while (paths.pop()) |raw_path| {
         var path = raw_path;
         _ = &path;
@@ -29,13 +43,15 @@ pub fn main(init:std.process.Init) !u8 {
                 var dir = try std.Io.Dir.cwd().openDir(init.io, path, .{ .iterate = true });
                 var itr = try dir.walkSelectively(init.gpa);
                 defer itr.deinit();
+                var count:usize = 0;
                 var longest:usize = 0;
-                while (try itr.next(init.io)) |entry|
+                while (try itr.next(init.io)) |entry| : (count += 1)
                     longest = @max(entry.basename.len + 2, longest);
                 itr.deinit();
                 itr = try dir.walkSelectively(init.gpa);
                 var col:usize = 0;
-                while (try itr.next(init.io)) |entry| {
+                var pos:usize = 0;
+                while (try itr.next(init.io)) |entry| : (pos += 1) {
                     errdefer {
                         stdout.interface.writeByte('\n') catch {};
                         stdout.interface.flush() catch {};
@@ -127,12 +143,13 @@ pub fn main(init:std.process.Init) !u8 {
                         try stdout.interface.writeByte('\n');
                     } else {
                         col += 1;
-                        if (col > (width / longest)) {
+                        if (pos < count-1) if (col > ((term_width / longest)-|1)) {
                             col = 0;
                             try stdout.interface.writeByte('\n');
                         } else {
-                            _ = try stdout.interface.splatByte(' ', longest - (entry.basename.len));
-                        }
+                            const len = longest - (entry.basename.len);
+                            _ = try stdout.interface.splatByte(' ', len);
+                        };
                     }
                     try stdout.interface.flush();
                 }

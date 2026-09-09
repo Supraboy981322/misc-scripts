@@ -303,7 +303,7 @@ pub const known_extensions = blk: {
                 "n64",
                 "z64",
             },
-            .{ .color = "0;94" },
+            .{ .color = "0;93" },
         },
 
         .{

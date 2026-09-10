@@ -6,6 +6,7 @@ const opts = struct {
     pub var a = false; //list all (directory listings)
     pub var D = false; //default to directory listing
     pub var C = false; //always print color
+    pub var N = false; //don't print paths for multiple inputs
 };
 
 var term_width:usize = 0;
@@ -42,7 +43,7 @@ pub fn main(init:std.process.Init) !u8 {
     while (paths.pop()) |raw_path| {
         var path = raw_path;
         _ = &path;
-        if (many) {
+        if (many and !opts.N) {
             try stdout.interface.print("\n{s}:\n", .{path});
             try stdout.interface.flush();
         }
@@ -217,6 +218,7 @@ pub fn doArgs(init:std.process.Init) !void {
                 'a' => opts.a = true,
                 'D' => opts.D = true,
                 'C' => opts.C = true,
+                'N' => opts.N = true,
                 '-' => ignore_rest = true,
                 else => return error.UnknownArgument,
             };

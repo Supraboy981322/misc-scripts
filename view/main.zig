@@ -2,12 +2,14 @@ const std = @import("std");
 
 var paths:std.ArrayList([]const u8) = .empty;
 const opts = struct {
-    pub var l = false;
-    pub var a = false;
-    pub var D = false;
+    pub var l = false; //include entry stat in directory listing
+    pub var a = false; //list all (directory listings)
+    pub var D = false; //default to directory listing
+    pub var C = false; //always print color
 };
 
 var term_width:usize = 0;
+var term_color:bool = false;
 
 pub fn main(init:std.process.Init) !u8 {
     defer paths.deinit(init.gpa);
@@ -27,6 +29,11 @@ pub fn main(init:std.process.Init) !u8 {
             break :blk 80;
         }
         break :blk s.ws_col;
+    };
+    term_color = blk: {
+        const no_color = init.environ_map.get("NO_COLOR") != null;
+        const tty = try std.Io.File.stdout().isTty(init.io);
+        break :blk (!no_color and tty) or opts.C;
     };
 
     var in_buf:[1024]u8 = undefined;
@@ -89,18 +96,21 @@ pub fn doDir(init:std.process.Init, path:[]const u8, stdout:*std.Io.Writer) !voi
 
         if (opts.l) {
             const template = "\x1b[0;30m-";
-            var i:@Vector(3, usize) = .{ 2, 5, 7 };
+            var i:@Vector(3, usize) = .{ 2, 5, if (term_color) 7 else 0 };
             const style = 0;
             const color = 1;
             const char  = 2;
 
-            var buf = stdout.buffer[0..template.len * 10];
+            var buf = stdout.buffer[0..if (term_color) template.len * 10 else 10];
             stdout.end = buf.len;
-            @memcpy(buf, template ** 10);
+            if (term_color)
+                @memcpy(buf, template ** 10)
+            else
+                @memset(buf, '-');
 
-            buf[i[style]] = '1';
+            if (term_color) buf[i[style]] = '1';
             if (entry.kind != .file) {
-                buf[i[color]] = '4';
+                if (term_color) buf[i[color]] = '4';
                 buf[i[char]] = switch(entry.kind) {
                     .directory => 'd',
                     .sym_link => 'l',
@@ -110,7 +120,7 @@ pub fn doDir(init:std.process.Init, path:[]const u8, stdout:*std.Io.Writer) !voi
                     .unix_domain_socket => 's',
                     else => '?',
                 };
-            } else {
+            } else if (term_color) {
                 buf[i[color]-1] = '9';
             }
 
@@ -122,51 +132,62 @@ pub fn doDir(init:std.process.Init, path:[]const u8, stdout:*std.Io.Writer) !voi
                 .{ .s = 6, .o = .{ .s = S.ISVTX, .b = 't' } },
             };
             for (table) |thing| inline for (0..3) |j| {
-                i += @splat(template.len);
+                i += @splat(if (term_color) template.len else 1);
                 const mask = @as(u9, 0b100_000_000) >> @intCast(thing.s + j);
                 const s = (m & mask) != 0;
                 const o = if (j == 2) (m & thing.o.s) != 0 else false;
                 if (!(s != o or (s and o))) {
-                    buf[i[style]] = '1';
-                    buf[i[color]-1] = '9';
+                    if (term_color) {
+                        buf[i[style]] = '1';
+                        buf[i[color]-1] = '9';
+                    }
                 } else if (j < 2) {
-                    buf[i[char]], buf[i[color]] = switch (j) {
+                    buf[i[char]], const c = switch (j) {
                         0 => .{ 'r', '3' },
                         1 => .{ 'w', '1' },
                         else => comptime unreachable,
                     };
+                    if (term_color) buf[i[color]] = c;
                 } else {
                     buf[i[char]] =
                         if (s)
                             ([_]u8{'x', thing.o.b})[@intFromBool(o)]
                         else
                             thing.o.b - 32;
-                    buf[i[color]] = if (o) '5' else '2';
+                    if (term_color)
+                        buf[i[color]] = if (o) '5' else '2';
                 }
             };
 
-            try stdout.writeAll("\x1b[0m ");
+            if (term_color)
+                try stdout.writeAll("\x1b[0m ")
+            else
+                try stdout.writeByte(' ');
         }
 
         const ext = blk: {
             const e = std.fs.path.extension(entry.basename);
             break :blk e[@min(e.len-|1, 1)..e.len];
         };
-        try stdout.print("\x1b[{s}m{s}\x1b[0m", .{
-            switch (entry.kind) {
-                .directory => "1;34",
-                .sym_link => "1;36",
-                else => if (known_extensions.get(ext)) |c|
-                    c.color
-                else if (ext.len > 0 and ext[ext.len-1] == '~')
-                    known_extensions.get("~").?.color
-                else
-                    "0"
-            },
-            entry.basename,
-        });
+        if (term_color) {
+            try stdout.print("\x1b[{s}m{s}\x1b[0m", .{
+                switch (entry.kind) {
+                    .directory => "1;34",
+                    .sym_link => "1;36",
+                    else => if (known_extensions.get(ext)) |c|
+                        c.color
+                    else if (ext.len > 0 and ext[ext.len-1] == '~')
+                        known_extensions.get("~").?.color
+                    else
+                        "0"
+                },
+                entry.basename,
+            });
+        } else {
+            try stdout.writeAll(entry.basename);
+        }
         col += 1;
-        if (opts.l or col > ((term_width / longest)-|1) or pos == count-1) {
+        if (opts.l or col > ((term_width / longest)-|1) or pos >= count-1) {
             col = 0;
             try stdout.writeByte('\n');
         } else if (pos < count-1) {
@@ -192,6 +213,7 @@ pub fn doArgs(init:std.process.Init) !void {
                 'l' => opts.l = true,
                 'a' => opts.a = true,
                 'D' => opts.D = true,
+                'C' => opts.C = true,
                 '-' => ignore_rest = true,
                 else => return error.UnknownArgument,
             };

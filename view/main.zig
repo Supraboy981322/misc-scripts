@@ -220,6 +220,7 @@ pub fn doArgs(init:std.process.Init) !void {
                 'C' => opts.C = true,
                 'N' => opts.N = true,
                 '-' => ignore_rest = true,
+                'h' => try help(init),
                 else => return error.UnknownArgument,
             };
             continue;
@@ -229,6 +230,68 @@ pub fn doArgs(init:std.process.Init) !void {
     if (paths.items.len == 0) {
         try paths.append(init.gpa, if (opts.D) "." else "/dev/stdin");
     }
+}
+
+pub fn help(init:std.process.Init) !void {
+    var buf:[1024]u8 = undefined;
+    var stdout = std.Io.File.stdout().writer(init.io, &buf);
+    const info = comptime blk: {
+        @setEvalBranchQuota((1<<32)-1);
+        const trim = (struct {
+            pub fn trim(str:[]const u8) []const u8 {
+                return std.mem.trim(u8, str, &std.ascii.whitespace);
+            }
+        }).trim;
+        const T = struct{ a:[]const u8, desc:[]const u8 };
+        var res:[]const T = &.{};
+        const src = @embedFile(@src().file);
+        var itr = std.mem.tokenizeAny(u8, src, " \t" ++ ";:");
+        var started:bool = false;
+        done: while (itr.next()) |thing| {
+            if (!started) {
+                if (!std.mem.eql(u8, thing, "opts")) continue;
+                started = true;
+                std.debug.assert(std.mem.eql(u8, trim(itr.next().?), "="));
+                std.debug.assert(std.mem.eql(u8, trim(itr.next().?), "struct"));
+                std.debug.assert(std.mem.eql(u8, trim(itr.next().?), "{"));
+                continue;
+            } else {
+                if (std.mem.eql(u8, trim(thing), "}")) break;
+                if (!std.mem.eql(u8, trim(thing), "pub"))
+                    {@panic("|" ++ trim(thing) ++ "|");}
+                std.debug.assert(std.mem.eql(u8, trim(thing), "pub"));
+                std.debug.assert(std.mem.eql(u8, trim(itr.next().?), "var"));
+                const name = itr.next().?;
+                std.debug.assert(std.mem.eql(u8, trim(itr.next().?), "="));
+                _ = itr.next();
+                var comment:[]const u8 = &.{};
+                while (true) {
+                    const chunk = trim(itr.next().?);
+                    if (chunk.len > 1 and chunk[0] == '/' and chunk[1] == '/') {
+                        comment = comment ++ chunk[2..];
+                        break;
+                    }
+                }
+                while (true) {
+                    const chunk = itr.next().?;
+                    comment = comment ++ " ";
+                    if (std.mem.findScalar(u8, chunk, '\n')) |end| {
+                        comment = comment ++ trim(chunk[0..end]);
+                        if (std.mem.findScalar(u8, chunk[end..], '}') != null) break :done;
+                        break;
+                    }
+                    comment = comment ++ trim(chunk);
+                }
+                res = res ++ .{ T{ .a = name, .desc = comment } };
+            }
+        }
+        break :blk res;
+    };
+    for (info) |thing| {
+        try stdout.interface.print("-{s}\n   {s}\n", .{thing.a, thing.desc});
+    }
+    try stdout.interface.flush();
+    std.process.exit(0);
 }
 
 pub const known_extensions = blk: {

@@ -76,8 +76,11 @@ pub fn doDir(init:std.process.Init, path:[]const u8, stdout:*std.Io.Writer) !voi
 
     var count:usize = 0;
     var longest:usize = 0;
-    while (try itr.next(init.io)) |entry| : (count += 1)
+    while (try itr.next(init.io)) |entry| {
+        if (entry.basename.len > 0 and entry.basename[0] == '.' and !opts.a) continue;
         longest = @max(entry.basename.len + 2, longest);
+        count += 1;
+    }
     itr.deinit();
     itr = try dir.walkSelectively(init.gpa);
 

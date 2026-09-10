@@ -1,6 +1,8 @@
 const std = @import("std");
 
 var paths:std.ArrayList([]const u8) = .empty;
+
+// NOTE: this struct is parsed via a comptime block to generate the help info
 const opts = struct {
     pub var l = false; //include entry stat in directory listing
     pub var a = false; //list all (directory listings)

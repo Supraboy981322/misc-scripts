@@ -32,7 +32,7 @@ pub fn main(init:std.process.Init) !u8 {
     };
     term_color = blk: {
         const no_color = init.environ_map.get("NO_COLOR") != null;
-        const tty = try std.Io.File.stdout().isTty(init.io);
+        const tty = std.Io.File.stdout().isTty(init.io) catch false;
         break :blk (!no_color and tty) or opts.C;
     };
 

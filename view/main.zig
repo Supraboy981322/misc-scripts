@@ -15,8 +15,14 @@ var term_width:usize = 0;
 var term_color:bool = false;
 
 pub fn main(init:std.process.Init) !u8 {
+    term_color = blk: {
+        const no_color = init.environ_map.get("NO_COLOR") != null;
+        const tty = std.Io.File.stdout().isTty(init.io) catch false;
+        break :blk (!no_color and tty);
+    };
     defer paths.deinit(init.gpa);
     try doArgs(init);
+    term_color = term_color or opts.C;
 
     var out_buf:[1024]u8 = undefined;
     var stdout = std.Io.File.stdout().writer(init.io, &out_buf);
@@ -32,11 +38,6 @@ pub fn main(init:std.process.Init) !u8 {
             break :blk 80;
         }
         break :blk s.ws_col;
-    };
-    term_color = blk: {
-        const no_color = init.environ_map.get("NO_COLOR") != null;
-        const tty = std.Io.File.stdout().isTty(init.io) catch false;
-        break :blk (!no_color and tty) or opts.C;
     };
 
     var in_buf:[1024]u8 = undefined;
@@ -237,6 +238,7 @@ pub fn doArgs(init:std.process.Init) !void {
 pub fn help(init:std.process.Init) !void {
     var buf:[1024]u8 = undefined;
     var stdout = std.Io.File.stdout().writer(init.io, &buf);
+    const wr = &stdout.interface;
     const info = comptime blk: {
         @setEvalBranchQuota((1<<32)-1);
         const trim = (struct {
@@ -289,10 +291,17 @@ pub fn help(init:std.process.Init) !void {
         }
         break :blk res;
     };
+    try wr.writeAll("args:\n");
     for (info) |thing| {
-        try stdout.interface.print("-{s}\n   {s}\n", .{thing.a, thing.desc});
+        try wr.writeAll("  ");
+        if (term_color)
+            try wr.writeAll("\x1b[33m");
+        try wr.print("-{s}", .{thing.a});
+        if (term_color)
+            try wr.writeAll("\x1b[0m");
+        try wr.print("  {s}\n", .{thing.desc});
     }
-    try stdout.interface.flush();
+    try wr.flush();
     std.process.exit(0);
 }
 

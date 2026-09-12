@@ -45,6 +45,13 @@ var alloc:std.mem.Allocator = undefined;
 pub fn main(init:std.process.Init) !u8 {
     io = init.io;
     alloc = init.gpa;
+    const one_off:bool = blk: {
+        var args = init.minimal.args.iterate();
+        _ = args.skip();
+        if (std.mem.eql(u8, args.next() orelse break :blk false, "one-off"))
+            break :blk true;
+        return error.UnknownArgument;
+    };
     var reader_buf:[1024]u8 = undefined;
     outer: while (true) : ({
         try io.sleep(.fromSeconds(5), .real);
@@ -56,7 +63,7 @@ pub fn main(init:std.process.Init) !u8 {
             status = new_status;
             level = new_level;
             capacity = new_capacity;
-            std.log.debug("{d}% | {t} | {?t}",.{capacity, level,status});
+            if (!one_off) std.log.debug("{d}% | {t} | {?t}",.{capacity, level,status});
         }
         const info = blk: {
             var file = try std.Io.Dir.cwd().openFile(
@@ -125,6 +132,7 @@ pub fn main(init:std.process.Init) !u8 {
                 else => continue,
             }
         }
+        if (one_off) break :outer;
         if (status == null) continue :outer; //ignore initial loop
 
         var buf:[100]u8 = undefined;
@@ -181,6 +189,19 @@ pub fn main(init:std.process.Init) !u8 {
             continue;
         }
 
+    }
+    if (one_off) {
+        var out_buf:[1024]u8 = undefined;
+        var stdout = std.Io.File.stdout().writer(init.io, &out_buf);
+        try stdout.interface.print(
+            \\{{
+            \\  "status": "{?t}",
+            \\  "capacity": {d},
+            \\  "level": "{t}"
+            \\}}
+            \\
+        , .{ status, capacity, level });
+        try stdout.interface.flush();
     }
     return 0;
 }

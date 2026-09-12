@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const bat_uevent = "/sys/class/power_supply/BAT0/uevent";
+const uevent_file = "/sys/class/power_supply/BAT0/uevent";
 const battery_low = (1<<5)-1;
 const percent_threshold = (1<<3)-1;
 
@@ -66,9 +66,12 @@ pub fn main(init:std.process.Init) !u8 {
             if (!one_off) std.log.debug("{d}% | {t} | {?t}",.{capacity, level,status});
         }
         const info = blk: {
-            var file = try std.Io.Dir.cwd().openFile(
-                io, bat_uevent, .{ .mode = .read_only }
-            );
+            var file = std.Io.Dir.cwd().openFile(
+                io, uevent_file, .{ .mode = .read_only }
+            ) catch |err| {
+                std.log.err("couldn't open uevent file ({s}): {t}", .{uevent_file, err});
+                break :outer;
+            };
             defer file.close(io);
             var reader = file.reader(io, &reader_buf);
             break :blk try reader.interface.allocRemaining(alloc, .unlimited);
@@ -101,7 +104,7 @@ pub fn main(init:std.process.Init) !u8 {
             const field = std.meta.stringToEnum(KnownFields, field_name) orelse {
                 std.log.warn(
                     "unknown field (in {s}): |{s}|=|{s}|",
-                    .{ bat_uevent, field_name, value }
+                    .{ uevent_file, field_name, value }
                 );
                 continue;
             };

@@ -36,7 +36,7 @@ pub fn main(init:std.process.Init) !u8 {
 fn cleanup(og:std.posix.termios, stdout:*std.Io.Writer) void {
     const fd = std.Io.File.stdin().handle;
     std.posix.tcsetattr(fd, .FLUSH, og) catch {};
-    stdout.print("\x1b[?1049l\x1b[0m\nexiting...\n", .{}) catch {};
+    stdout.print("\x1b[?1049l\x1b[0m\x1B[2K\nexiting...\n", .{}) catch {};
     stdout.flush() catch {};
     std.process.exit(0);
 }

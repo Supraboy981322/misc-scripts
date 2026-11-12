@@ -1,40 +1,28 @@
 {
-  description = "compression defeater 2000";
+   description = "compression defeater 2000";
 
-  inputs = {
-    # nixpkgs unstable for latest versions
-    pkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+   inputs = {
+      pkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+      flake-utils.url = "github:numtide/flake-utils";
+   };
 
-    # import Zig overlay
-    zig_overlay = {
-      url = "github:mitchellh/zig-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
-
-  outputs = { self, nixpkgs, zig_overlay, ... } @ inputs: 
-    let
-      # system version (you may need to change this)
-      system = "x86_64-linux";
-
-      repo_root = builtins.toString ./.;
-
-      # the server only compiles on one Zig version 
-      zigVersion = "0.16.0";
-
-      # selected Zig package
-      zig = zig_overlay.packages.${system}.${zigVersion};
-
-      # add the Zig overlay pkgs
-      pkgs = import nixpkgs {
-        inherit system;
-        overlays = [ zig_overlay.overlays.default ];
-      };
-    in {
-      # Nix shell
-      devShells.${system}.default = pkgs.mkShell {
-        # install packages
-        packages = [ zig ]; 
-      };
-    };
+   outputs = { self, nixpkgs, flake-utils, ... } @ inputs:
+      (flake-utils.lib.eachDefaultSystem (system: let
+         pkgs = import nixpkgs { inherit system; };
+      in {
+         packages.default = pkgs.stdenv.mkDerivation {
+            pname = "compression defeater 2000";
+            version = "0.1.0";
+            src = ./.;
+            nativeBuildInputs = with pkgs; [ zig_0_16 ];
+            buildPhase = "zig build";
+            installPhase = ''
+               mkdir -p "$out/bin"
+               cp -r zig-out/bin/* "$out/bin"
+            '';
+         };
+         devShells.default = pkgs.mkShell {
+            packages = with pkgs; [ zig_0_16 ];
+         };
+      }));
 }
